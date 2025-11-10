@@ -213,9 +213,11 @@ def get_loss(config):
 
 
 def set_seed_from_config(config):
-    if "random_seed" in config:
-        random_seed = config["random_seed"]
+    if "seed" in config:
+        random_seed = config["seed"]
+        print('Using random seed from config:', random_seed)
     else:
+        print("No seed provided in config, using default seed=123")
         random_seed = 123
     set_seed(random_seed)
     return random_seed

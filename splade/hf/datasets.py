@@ -61,7 +61,7 @@ class L2I_Dataset(Dataset):
     output : (queries, docs), scores
     """
 
-    def __init__(self, document_dir, query_dir, qrels_path, n_negatives=2, nqueries=-1,training_file_path=None, training_data_type=None, filter_data=None, topk=(0,1000), norm=False):
+    def __init__(self, document_dir, query_dir, qrels_path, n_negatives=2, n_positives=1, nqueries=-1,training_file_path=None, training_data_type=None, filter_data=None, topk=(0,1000), norm=False):
 
         print("START DATASET: %s"%document_dir, flush=True)
         self.document_dataset = DatasetPreLoad(document_dir,id_style="content_id",filter=("topiocqa" in document_dir))
@@ -221,11 +221,10 @@ class L2I_Dataset(Dataset):
             raise NotImplementedError('training_data_type must be in [saved_pkl, pkl_dict, trec, json]')
         self.training_data_type = training_data_type
 
-
         self.query_list = list(self.samples.keys())
         print("QUERY SIZE = ", len(self.query_list))
         assert  len(self.query_list) > 0 
-       
+        self.n_positives = n_positives
 
     def __len__(self):
         return len(self.query_list)
@@ -235,7 +234,14 @@ class L2I_Dataset(Dataset):
         query = self.query_list[idx]
         q = self.query_dataset[query][1]
         positives = list(self.qrels[query].keys())
-        
+
+        if len(positives) < self.n_positives:
+            # take the top similarity scores from self.samples
+            sorted_positives = sorted(self.samples[query].items(), reverse=True, key=lambda item: item[1])
+
+            positives = positives + [k for k,v in sorted_positives if k not in positives][:self.n_positives - len(positives)]
+        assert len(positives) >= self.n_positives, "not enough positives for query %s"%query
+
         candidates = [x for x in self.samples[query] if x not in positives]
         # print(len(candidates))
 
@@ -247,13 +253,14 @@ class L2I_Dataset(Dataset):
         if self.training_data_type == 'json_with_explicit_pos':
             d_pos = self.qrels[query][query]
         else:
-            positive = random.sample(positives,1)[0]
-            d_pos = self.document_dataset[positive][1]
+            positive = random.sample(positives,self.n_positives)
+            d_pos = [self.document_dataset[pos][1] for pos in positive]
         negatives = [self.document_dataset[negative][1].strip() for negative in negative_ids]
         q = q.strip()
-        d_pos = d_pos.strip()
+        d_pos = [d.strip() for d in d_pos]
         
-        docs = [q,d_pos]
+        docs = [q]
+        docs.extend(d_pos)
         docs.extend(negatives)
         scores_negatives = [self.samples[query][negative] for negative in negative_ids]
         try: # If there's a score for the positive on the file it uses that score

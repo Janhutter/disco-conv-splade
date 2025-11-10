@@ -1,0 +1,21 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_a100
+#SBATCH --gpus=1
+#SBATCH --job-name=index
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=10:00:00
+#SBATCH --output=%A.out
+
+config=disco_topiocqa_mistral_llama.yaml
+collection_path=DATA/full_wiki_segments_topiocqa.tsv
+index_dir=DATA/topiocqa_index_self
+
+python -m splade.index --config-name=$config \
+    init_dict.model_type_or_dir=naver/splade-cocondenser-ensembledistil \
+    config.pretrained_no_yamlconfig=true \
+    config.hf_training=false \
+    config.index_dir="$index_dir" \
+    data.COLLECTION_PATH="$collection_path" \
+    config.index_retrieve_batch_size=128

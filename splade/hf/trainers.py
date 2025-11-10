@@ -1,11 +1,12 @@
 from typing import Dict
 from transformers.trainer import Trainer, logger
+from transformers.trainer_callback import PrinterCallback
 from transformers import PreTrainedModel
 import torch
 import os
 import numpy as np
 from splade.utils.utils import generate_bow, clean_bow, pruning
-
+import wandb
 
 class BaseTrainer(Trainer):
 
@@ -68,9 +69,11 @@ class BaseTrainer(Trainer):
 
 class IRTrainer(BaseTrainer):
 
-    def __init__(self, n_negatives, shared_weights=True, splade_doc=False, dense=False, *args, **kwargs):
+    def __init__(self, n_negatives, n_positives, shared_weights=True, splade_doc=False, dense=False, *args, **kwargs):
         super(IRTrainer, self).__init__(*args, **kwargs)
         self.n_negatives = n_negatives
+        # Support multiple positives per query if model exposes it; default to 1
+        self.n_positives = n_positives
         self.ce_loss = torch.nn.CrossEntropyLoss()
         self.distil_loss = torch.nn.KLDivLoss(reduction="none")
         self.mse_loss = torch.nn.MSELoss(reduction="none")
@@ -116,6 +119,15 @@ class IRTrainer(BaseTrainer):
             self.sep_id = self.tokenizer.vocab[self.sep_token]
             self.mask_id = self.tokenizer.vocab[self.mask_token]
 
+    def create_logger(self):
+        logger = wandb.init(
+            project=self.args.wandb_project_name,
+            name=self.args.wandb_run_name,
+            config=dict(self.args.__dict__),
+            entity="disco-conv-splade",
+        )
+        self.logger = logger
+        return logger
 
 
     def log(self, logs: Dict[str, float]) -> None:
@@ -133,15 +145,40 @@ class IRTrainer(BaseTrainer):
             logs["L0_q"] = np.mean(self.last_queries)
             logs["flops_loss"] = np.mean(self.last_flops)
             logs["anti-zero"] = np.mean(self.last_anti_zero)
+
+            # log to wandb
+            if self.logger is not None:
+                self.logger.log({
+                    'training/L0_d': logs["L0_d"],
+                    'training/L0_q': logs["L0_q"],
+                    'training/flops_loss': logs["flops_loss"],
+                    'training/anti-zero': logs["anti-zero"],
+                })
+
         if "contrastive" in self.loss:
             logs["contrastive_loss"] = np.mean(self.last_losses["contrastive"])
             self.last_losses["contrastive"] = list()
+
+            if self.logger is not None:
+                self.logger.log({
+                    'training/contrastive_loss': logs["contrastive_loss"],
+                })
         if "mse_margin" in self.loss:
             logs["mse_margin_loss"] = np.mean(self.last_losses["mse_margin"])
             self.last_losses["mse_margin"] = list()
+
+            if self.logger is not None:
+                self.logger.log({
+                    'training/mse_margin_loss': logs["mse_margin_loss"],
+                })
         if "kldiv" in self.loss:
             logs["kldiv_loss"] = np.mean(self.last_losses["kldiv"])
             self.last_losses["kldiv"] = list()
+
+            if self.logger is not None:
+                self.logger.log({
+                    'training/kldiv_loss': logs["kldiv_loss"],
+                })
 
         self.last_docs = list()
         self.last_queries = list()
@@ -157,6 +194,11 @@ class IRTrainer(BaseTrainer):
         self.lambda_t_d = min(self.lambda_d, self.lambda_d * ((self.step) / (self.T_d+1)) ** 2)
         self.lambda_t_q = min(self.lambda_q, self.lambda_q * ((self.step) / (self.T_q+1)) ** 2)
 
+        if self.logger is not None:
+            self.logger.log({
+                'training/lambda_t_d': self.lambda_t_d,
+                'training/lambda_t_q': self.lambda_t_q,
+            })
 
     def compute_loss(self, model, inputs, return_outputs=False):
         """
@@ -169,8 +211,8 @@ class IRTrainer(BaseTrainer):
         self.compute_lambdas()
         queries, docs = model(**inputs) # shape (bsz, 1, Vocab), (bsz, nb_neg+1, Vocab)
         if self.lexical_type != "none":
-            #input_ids = inputs["input_ids"].view(-1,self.n_negatives+2,inputs['input_ids'].size(1)) #(bsz, nb_neg+2, seq_length)
-            input_ids = inputs["input_ids"].reshape(-1,self.n_negatives+2,inputs['input_ids'].size(1)) #(bsz, nb_neg+2, seq_length)
+            total_docs = self.n_positives + self.n_negatives + 1  # 1 query + P positives + N negatives
+            input_ids = inputs["input_ids"].reshape(-1, total_docs, inputs['input_ids'].size(1)) #(bsz, 1+P+N, seq_length)
             doc_ids = input_ids[:,1:,:].reshape(-1,input_ids.size(-1)) # (bsz, seq_length)
             query_ids = input_ids[:,:1,:].reshape(-1,input_ids.size(-1)) # (bsz*(nb_neg+1), seq_length)
             doc_bow = generate_bow(doc_ids,docs.size(-1), device=doc_ids.device)
@@ -180,7 +222,7 @@ class IRTrainer(BaseTrainer):
             if self.lexical_type == "query" or self.lexical_type == "both":
                 queries = queries * query_bow.view(-1, 1, doc_bow.size(-1))
             if self.lexical_type == "document" or self.lexical_type == "both":
-                docs = docs * doc_bow.view(-1, self.n_negatives+1, doc_bow.size(-1))
+                docs = docs * doc_bow.view(-1, self.n_positives + self.n_negatives, doc_bow.size(-1))
 
         if self.top_d > 0:
             docs = pruning(docs, self.top_d,2)
@@ -194,11 +236,12 @@ class IRTrainer(BaseTrainer):
         # if in_batch_negatives:
         #     doc_positive = docs[:,:1,:].squeeze() # docs (bsz, Vocab)
         #     scores_in_batch_negatives = torch.matmul(queries, doc_positive.t())  # shape (bsz, bsz)
-        scores = torch.bmm(queries,torch.permute(docs,[0,2,1])).squeeze(1) # shape (bsz, nb_neg+1)
-        scores_positive = scores[:,:1] # shape (bsz, 1)
-        negatives = docs[:,1:,:].reshape(-1,docs.size(2)).T # shape (Vocab, bsz*nb_neg)
-        scores_negative = torch.matmul(queries.squeeze(1),negatives) # shape (bsz, bsz*nb_neg)
-        all_scores = torch.cat([scores_positive,scores_negative],dim=1) # shape (bsz, bsz*nb_neg+1)
+        scores = torch.bmm(queries, torch.permute(docs, [0, 2, 1])).squeeze(1) # shape (bsz, P+N)
+        # Keep existing behavior: treat first column as the "primary" positive for contrastive
+        scores_positive = scores[:, :1]  # (bsz, 1)
+        negatives = docs[:, 1:, :].reshape(-1, docs.size(2)).T  # (Vocab, bsz*(P-1+N))
+        scores_negative = torch.matmul(queries.squeeze(1), negatives)  # (bsz, bsz*(P-1+N))
+        all_scores = torch.cat([scores_positive, scores_negative], dim=1)  # (bsz, bsz*(P-1+N)+1)
 
         losses = list()
 
@@ -212,17 +255,32 @@ class IRTrainer(BaseTrainer):
             losses.append(weight*ce_loss)
             self.last_losses["contrastive"].append(ce_loss.cpu().detach().item())
 
+            if self.logger is not None:
+                self.logger.log({
+                    'training/contrastive_scores_positive_mean': scores_positive.mean().cpu().detach().item(),
+                    'training/contrastive_scores_negative_mean': scores_negative.mean().cpu().detach().item(),
+                })
+
         if "mse_margin" in self.loss:
-            scores_a = scores.unsqueeze(1) # shape (bsz, 1 ,nb_neg)
-            scores_b = scores.unsqueeze(2) # shape (bsz, nb_neg, 1)
-            margin_student = scores_a - scores_b # shape (bsz, nb_neg, 1)
+            # Align teacher and student over the common number of candidates per query
+            bsz = scores.size(0)
+            if teacher_scores.dim() != 2 or teacher_scores.size(0) != bsz:
+                teacher_scores = teacher_scores.view(bsz, -1)
+            K_student = scores.size(1)
+            K_teacher = teacher_scores.size(1)
+            K_common = min(K_student, K_teacher)
+            student_s = scores[:, :K_common]
+            teacher_s = teacher_scores[:, :K_common].to(scores.device)
 
-            teacher_scores = teacher_scores.view(scores.size()).to(scores.device)
-            teacher_scores_a = teacher_scores.unsqueeze(1) # shape (bsz, 1 ,nb_neg)
-            teacher_scores_b = teacher_scores.unsqueeze(2) # shape (bsz, nb_neg, 1)
-            margin_teacher = teacher_scores_a - teacher_scores_b # shape (bsz, nb_neg, 1)
+            scores_a = student_s.unsqueeze(1)  # (bsz, 1, K_common)
+            scores_b = student_s.unsqueeze(2)  # (bsz, K_common, 1)
+            margin_student = scores_a - scores_b  # (bsz, K_common, K_common)
 
-            mse_loss = self.mse_loss(margin_student,margin_teacher).mean(dim=2).mean(dim=1).mean(dim=0)
+            teacher_scores_a = teacher_s.unsqueeze(1)  # (bsz, 1, K_common)
+            teacher_scores_b = teacher_s.unsqueeze(2)  # (bsz, K_common, 1)
+            margin_teacher = teacher_scores_a - teacher_scores_b  # (bsz, K_common, K_common)
+
+            mse_loss = self.mse_loss(margin_student, margin_teacher).mean(dim=(1, 2)).mean(dim=0)
 
             if "with_weights" in self.loss:
                 weight = 0.05
@@ -231,12 +289,23 @@ class IRTrainer(BaseTrainer):
             losses.append(weight*mse_loss)
             self.last_losses["mse_margin"].append(mse_loss.cpu().detach().item())
 
+            if self.logger is not None:
+                self.logger.log({
+                    'training/mse_margin_student_mean': margin_student.mean().cpu().detach().item(),
+                    'training/mse_margin_teacher_mean': margin_teacher.mean().cpu().detach().item(),
+                })
+
         # distillation with kld loss
         if "kldiv" in self.loss:
             temperature = 1
-            student_scores = torch.log_softmax(scores*temperature,dim=1)
-            teacher_scores = teacher_scores.view(scores.size()).to(scores.device)
-            teacher_scores = torch.softmax(teacher_scores*temperature,dim=1)
+            bsz = scores.size(0)
+            if teacher_scores.dim() != 2 or teacher_scores.size(0) != bsz:
+                teacher_scores = teacher_scores.view(bsz, -1)
+            K_student = scores.size(1)
+            K_teacher = teacher_scores.size(1)
+            K_common = min(K_student, K_teacher)
+            student_scores = torch.log_softmax(scores[:, :K_common] * temperature, dim=1)
+            teacher_scores = torch.softmax(teacher_scores[:, :K_common].to(scores.device) * temperature, dim=1)
 
             kldiv_loss = self.distil_loss(student_scores, teacher_scores).sum(dim=1).mean(dim=0)
             if "with_weights" in self.loss:
@@ -245,6 +314,12 @@ class IRTrainer(BaseTrainer):
                 weight = 1.0
             losses.append(weight*kldiv_loss)
             self.last_losses["kldiv"].append(kldiv_loss.cpu().detach().item())
+
+            if self.logger is not None:
+                self.logger.log({
+                    'training/kldiv_student_mean': student_scores.mean().cpu().detach().item(),
+                    'training/kldiv_teacher_mean': teacher_scores.mean().cpu().detach().item(),
+                })
 
         loss = 0
         for loss_ in losses:

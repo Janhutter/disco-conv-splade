@@ -91,12 +91,16 @@ class DataTrainingArguments:
         default=4,
     )
 
+    n_positives: int = field(
+        metadata={"help": "Positives per query"},
+        default=1,
+    )
+
 
     n_queries: int = field(
         metadata={"help": "number of queries"},
         default=-1,
     )
-
 
 
 
@@ -151,4 +155,14 @@ class LocalTrainingArguments(TrainingArguments):
         default="none",
     )
 
+
+    wandb_project_name: str = field(
+        metadata={"help": "Weights and Biases project name"},
+        default="disco-conv-splade",
+    )
+
+    wandb_run_name: str = field(
+        metadata={"help": "Weights and Biases run name"},
+        default="disco_topiocqa_mistral_llama",
+    )
 

@@ -69,7 +69,7 @@ class SPLADE(torch.nn.Module):
             # mode_d = False if not mode else not self.freeze_d_model
 
 
-    def __init__(self, model_type_or_dir, tokenizer=None, shared_weights=True, n_negatives=-1, splade_doc=False, model_q=None, 
+    def __init__(self, model_type_or_dir, tokenizer=None, shared_weights=True, n_negatives=-1, n_positives=1, splade_doc=False, model_q=None, 
                  freeze_d_model=False,
                  #adapter_name: str = None,
                  #adapter_config: str = None, #,Union[str, AdapterConfig] = None, 
@@ -90,6 +90,7 @@ class SPLADE(torch.nn.Module):
         self.output_dim=self.doc_encoder.config.vocab_size
 
         self.n_negatives = n_negatives
+        self.n_positives = n_positives
         self.splade_doc = splade_doc
         self.doc_activation = self.splade_max
         self.query_activation = self.splade_max if not self.splade_doc else self.passthrough
@@ -191,10 +192,10 @@ class SPLADE(torch.nn.Module):
 
         if not self.shared_weights or self.splade_doc:
             attention_mask = tokens["attention_mask"]
-            input_ids = tokens["input_ids"] ##(bsz * (nb_neg+2) , seq_length)
-            input_ids = input_ids.view(-1,self.n_negatives+2,input_ids.size(1)) ##(bsz, nb_neg+2 , seq_length)
-            attention_mask = attention_mask.view(-1,self.n_negatives+2,attention_mask.size(1))
-            docs_ids = input_ids[:,1:,:].reshape(-1,input_ids.size(2)) ##(bsz * (nb_neg+1) , seq_length)
+            input_ids = tokens["input_ids"] ##(bsz * (1+P+N) , seq_length)
+            input_ids = input_ids.view(-1, self.n_positives + self.n_negatives + 1, input_ids.size(1)) ##(bsz, 1+P+N , seq_length)
+            attention_mask = attention_mask.view(-1, self.n_positives + self.n_negatives + 1, attention_mask.size(1))
+            docs_ids = input_ids[:,1:,:].reshape(-1, input_ids.size(2)) ##(bsz * (P+N) , seq_length)
             docs_attention = attention_mask[:,1:,:].reshape(-1,attention_mask.size(2))
             queries_ids = input_ids[:,:1,:].reshape(-1,input_ids.size(2))  ##(bsz * (1) , seq_length)
             queries_attention = attention_mask[:,:1,:].reshape(-1,attention_mask.size(2))
@@ -202,10 +203,10 @@ class SPLADE(torch.nn.Module):
             queries_result = self.query_activation(self.query_encoder(input_ids=queries_ids,attention_mask=queries_attention), attention_mask=queries_attention)
             queries_result = queries_result.view(-1,1,queries_result.size(1))  ##(bsz, (1) , Vocab)
             docs_result = self.doc_activation(self.doc_encoder(input_ids=docs_ids,attention_mask=docs_attention),attention_mask=docs_attention)
-            docs_result = docs_result.view(-1,self.n_negatives+1,docs_result.size(1))  ####(bsz, (nb_neg+1) , Vocab)
+            docs_result = docs_result.view(-1, self.n_positives + self.n_negatives, docs_result.size(1))  ####(bsz, (P+N) , Vocab)
         else:
             representations = self.doc_activation(self.doc_encoder(**tokens),attention_mask=tokens["attention_mask"]) #TODO This should separate docs and queries and use their separate activations, for now is not a problem because they will always be the same if we are here.
-            output = representations.view(-1,self.n_negatives+2,representations.size(1))
+            output = representations.view(-1, self.n_positives + self.n_negatives + 1, representations.size(1))
             queries_result = output[:,:1,:]
             docs_result = output[:,1:,:]
         return queries_result,docs_result
@@ -235,7 +236,7 @@ class SPLADE(torch.nn.Module):
 
 class DPR(torch.nn.Module):
 
-    def __init__(self, model_type_or_dir, shared_weights=True, n_negatives=-1, tokenizer=None, model_q=None, pooling='cls'):
+    def __init__(self, model_type_or_dir, shared_weights=True, n_negatives=-1, n_positives=1, tokenizer=None, model_q=None, pooling='cls'):
         """
         output indicates which representation(s) to output ('MLM' for MLM model)
         model_type_or_dir is either the name of a pre-trained model (e.g. bert-base-uncased), or the path to
@@ -245,6 +246,7 @@ class DPR(torch.nn.Module):
         self.shared_weights = shared_weights       
         self.doc_encoder = AutoModel.from_pretrained(model_type_or_dir)
         self.n_negatives = n_negatives
+        self.n_positives = n_positives
         self.tokenizer = tokenizer
         self.pooling = pooling
         if shared_weights:
@@ -265,9 +267,9 @@ class DPR(torch.nn.Module):
         if not self.shared_weights:
             attention_mask = tokens["attention_mask"]
             input_ids = tokens["input_ids"]
-            input_ids = input_ids.view(-1,self.n_negatives+2,input_ids.size(1))
-            attention_mask = attention_mask.view(-1,self.n_negatives+2,attention_mask.size(1))
-            docs_ids = input_ids[:,1:,:].reshape(-1,input_ids.size(2))
+            input_ids = input_ids.view(-1, self.n_positives + self.n_negatives + 1, input_ids.size(1))
+            attention_mask = attention_mask.view(-1, self.n_positives + self.n_negatives + 1, attention_mask.size(1))
+            docs_ids = input_ids[:,1:,:].reshape(-1, input_ids.size(2))
             docs_attention = attention_mask[:,1:,:].reshape(-1,attention_mask.size(2))
             queries_ids = input_ids[:,:1,:].reshape(-1,input_ids.size(2))
             queries_attention = attention_mask[:,:1,:].reshape(-1,attention_mask.size(2))
@@ -283,17 +285,17 @@ class DPR(torch.nn.Module):
 
             docs_result = self.doc_encoder(input_ids=docs_ids,attention_mask=docs_attention)[0]
             if self.pooling == 'mean':
-                docs_result = self.mean_pooling(docs_result, queries_attention)
+                docs_result = self.mean_pooling(docs_result, docs_attention)
             else:
                 docs_result = docs_result[:,0,:]
-            docs_result = docs_result.view(-1,self.n_negatives+1,docs_result.size(1))
+            docs_result = docs_result.view(-1, self.n_positives + self.n_negatives, docs_result.size(1))
         else:
             output = self.doc_encoder(**tokens)[0]
             if self.pooling == 'mean':
                 output = self.mean_pooling(output, tokens["attention_mask"])
             else:
                 output = output[:,0,:]
-            output = output.view(-1,self.n_negatives+2,output.size(1))
+            output = output.view(-1, self.n_positives + self.n_negatives + 1, output.size(1))
             queries_result = output[:,:1,:]
             docs_result = output[:,1:,:]
         return queries_result,docs_result

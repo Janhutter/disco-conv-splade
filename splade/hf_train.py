@@ -27,22 +27,33 @@ def hf_train(exp_dict: DictConfig):
     exp_dict, _, _, _ = get_initialize_config(exp_dict, train=True)
     model_args,data_args,training_args = convert(exp_dict)
 
+    training_args.logging_strategy = "steps"
+    training_args.logging_steps = 1
+    training_args.log_level = "warning"
+    training_args.log_level_replica = "warning"
+
     tokenizer = AutoTokenizer.from_pretrained(model_args.tokenizer_name_or_path)
 
     # initialize the model: dense or a splade model (splade-doc,(a)symetric splade etc)
     if model_args.dense:
         model = DPR(
-            model_args.model_name_or_path,shared_weights=model_args.shared_weights,n_negatives=data_args.n_negatives,
-            tokenizer=tokenizer, model_q=model_args.model_q, pooling=model_args.dense_pooling)
+            model_args.model_name_or_path,
+            shared_weights=model_args.shared_weights,
+            n_negatives=data_args.n_negatives,
+            n_positives=data_args.n_positives,
+            tokenizer=tokenizer,
+            model_q=model_args.model_q,
+            pooling=model_args.dense_pooling)
 
     else:
         model = SPLADE(
-            model_args.model_name_or_path,shared_weights=model_args.shared_weights,n_negatives=data_args.n_negatives,
+            model_args.model_name_or_path,shared_weights=model_args.shared_weights,n_negatives=data_args.n_negatives, n_positives=data_args.n_positives,
             tokenizer=tokenizer, splade_doc=model_args.splade_doc, model_q=model_args.model_q, freeze_d_model=model_args.freeze_d_model)
             #adapter_name=model_args.adapter_name, adapter_config=model_args.adapter_config, load_adapter=model_args.load_adapter)
 
     # load the dataset
     data_collator= L2I_Collator(tokenizer=tokenizer,max_length=model_args.max_length)
+    print('ARGS', data_args)
     if data_args.training_data_type == 'triplets':
          dataset = TRIPLET_Dataset(data_dir=data_args.training_data_path)
     else:
@@ -52,13 +63,14 @@ def hf_train(exp_dict: DictConfig):
                               query_dir=data_args.query_dir,                   # path to queri=y file
                               qrels_path=data_args.qrels_path,                 # path to qrels
                               n_negatives=data_args.n_negatives,               # nb negatives in batch
+                              n_positives=data_args.n_positives,               # nb positives in batch
                               nqueries=data_args.n_queries,                    # consider only a subset of <nqueries> queries
                               filter_data=data_args.filter,
                               topk=data_args.topk
                             #   norm=data_args.norm
                               )
 
-    
+
     trainer = IRTrainer(model=model,                         # the instantiated 🤗 Transformers model to be trained
                         args=training_args,                  # training arguments, defined above
                         train_dataset=dataset,
@@ -67,6 +79,7 @@ def hf_train(exp_dict: DictConfig):
                         shared_weights=model_args.shared_weights,  # query and document model shared or not
                         splade_doc=model_args.splade_doc,          # model is a spladedoc model
                         n_negatives=data_args.n_negatives,         # nb negatives in batch 
+                        n_positives=data_args.n_positives,         # nb positives in batch
                         dense=model_args.dense)                    # is the model dense or not (DPR or SPLADE)
     
     last_checkpoint = None
@@ -76,6 +89,8 @@ def hf_train(exp_dict: DictConfig):
     if  trainer.is_world_process_zero():
         print(OmegaConf.to_yaml(exp_dict))
 
+    logger = trainer.create_logger()
+
 
     trainer.train(resume_from_checkpoint=last_checkpoint)
     final_path = os.path.join(training_args.output_dir,"model")
@@ -84,7 +99,7 @@ def hf_train(exp_dict: DictConfig):
 
     #trainer.create_model_card()   # need .config
     
-    if  trainer.is_world_process_zero():
+    if trainer.is_world_process_zero():
         with open(os.path.join(final_path, "model_args.json"), "w") as write_file:
             json.dump(asdict(model_args), write_file, indent=4)
         with open(os.path.join(final_path, "data_args.json"), "w") as write_file:

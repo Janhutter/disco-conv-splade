@@ -82,3 +82,6 @@ hf:
   data:
     distillation: false
     n_negatives: 16
+    n_positives: 16
+    wandb_project_name: disco-conv-splade
+    wandb_run_name: disco_topiocqa_mistral_llama

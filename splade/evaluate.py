@@ -9,12 +9,22 @@ from splade.evaluation.eval import load_and_evaluate
 from splade.utils.utils import get_dataset_name
 from splade.utils.hydra import hydra_chdir
 
+import wandb
+
 @hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME,version_base="1.2")
 def evaluate(exp_dict: DictConfig):
 
     # for dataset EVAL_QREL_PATH
     # for metric of this qrel
     hydra_chdir(exp_dict)
+
+    wandb.init(
+                project='disco-conv-splade_evaluation',
+                name='disco_topiocqa_mistral_llama',
+                config=dict(exp_dict),
+                entity="disco-conv-splade",
+            )
+
     eval_qrel_path = exp_dict.data.EVAL_QREL_PATH
     eval_metric = exp_dict.config.eval_metric
     dataset_names = exp_dict.config.retrieval_name
@@ -44,6 +54,8 @@ def evaluate(exp_dict: DictConfig):
                 res_full_all_datasets[dataset_name] = res_full
             out_fp = os.path.join(out_dir, dataset_name, "perf.json")
             json.dump(res, open(out_fp,"a"))
+            wandb.log({f"{dataset_name}/{k}": v for k, v in res.items()})
+
     out_all_fp= os.path.join(out_dir, "perf_all_datasets_solo.json")
     json.dump(res_all_datasets, open(out_all_fp, "a"))
     with open(out_all_fp,"a") as out_all_fp_open:
@@ -52,6 +64,9 @@ def evaluate(exp_dict: DictConfig):
     json.dump(res_full_all_datasets, open(out_all_fp, "a"))
     with open(out_all_fp,"a") as out_all_fp_open:
         out_all_fp_open.write('\n')
+
+    wandb.log({"all_datasets": res_all_datasets})
+    wandb.finish()
 
     return res_all_datasets
 
