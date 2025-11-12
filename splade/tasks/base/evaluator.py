@@ -42,8 +42,17 @@ class Evaluator:
                     ## model already loaded
                     pass
                 elif ("pretrained_no_yamlconfig" not in config or not config["pretrained_no_yamlconfig"] ):
-                    checkpoint = torch.load(os.path.join(config["checkpoint_dir"], "model/model.tar"))
-                    restore_model(model, checkpoint["model_state_dict"])
+
+                    # check if exists
+                    if not os.path.exists(os.path.join(config["checkpoint_dir"], "model/model.tar")):
+                        print("No checkpoint found at {}".format(os.path.join(config["checkpoint_dir"], "model/model.tar")))
+                        print(f"Loading vanilla weights: {config['model_type_or_dir']}")
+                        model = model.from_pretrained(config['model_type_or_dir'])
+                        self.model = model
+
+                    else:
+                        checkpoint = torch.load(os.path.join(config["checkpoint_dir"], "model/model.tar"))
+                        restore_model(model, checkpoint["model_state_dict"])
 
                 self.model.eval()
                 if torch.cuda.device_count() > 1:
@@ -61,5 +70,6 @@ class Evaluator:
                                             map_location=self.device)
                     restore_model(model, checkpoint["model_state_dict"])
         else:
-            print("WARNING: init evaluator, NOT restoring the model, NOT placing on device")
+            print("WARNING: init evaluator, NOT restoring the model")
+            self.model.to(self.device)
         self.model.eval()  # => put in eval mode

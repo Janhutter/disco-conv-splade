@@ -179,7 +179,16 @@ def get_initialize_config(exp_dict: DictConfig, train=False):
         if config.pretrained_no_yamlconfig:
             model_training_config = config
         else:
-            model_training_config = OmegaConf.load(os.path.join(config["checkpoint_dir"], "config.yaml"))["config"]
+            # check if the config yaml file exists in the checkpoint dir
+            if not os.path.exists(os.path.join(config["checkpoint_dir"], "config.yaml")):
+                # make a folder with the huggingface weights
+                os.makedirs(os.path.join(config["checkpoint_dir"]), exist_ok=True)
+                # write the config to config.yaml
+                OmegaConf.save(config=exp_dict, f=os.path.join(config["checkpoint_dir"], "config.yaml"))
+                model_training_config = exp_dict["config"]
+
+            else:
+                model_training_config = OmegaConf.load(os.path.join(config["checkpoint_dir"], "config.yaml"))["config"]
 
         #if HF: need to update config (except for adapters...).
         #if not "adapter_name" in config and "hf_training" in config:

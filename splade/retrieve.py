@@ -23,6 +23,9 @@ def retrieve_evaluate(exp_dict: DictConfig):
     if "hf_training" in config and config["hf_training"]:
        init_dict.model_type_or_dir=os.path.join(config.checkpoint_dir,"model")
        init_dict.model_type_or_dir_q=os.path.join(config.checkpoint_dir,"model/query") if init_dict.model_type_or_dir_q else None
+       restore = True
+    else:
+        restore = False
 
     model = get_model(config, init_dict)
     set_seed_from_config(config)
@@ -35,7 +38,7 @@ def retrieve_evaluate(exp_dict: DictConfig):
                                         shuffle=False, num_workers=1)
 
         evaluator = SparseRetrieval(config=config, model=model, dataset_name=get_dataset_name(data_dir),
-                                compute_stats=True, dim_voc=model.output_dim)
+                                compute_stats=True, dim_voc=model.output_dim, restore=restore)
 
         evaluator.batch_retrieve(q_loader, top_k=exp_dict["config"]["top_k"], threshold=exp_dict["config"]["threshold"])
         evaluator = None
