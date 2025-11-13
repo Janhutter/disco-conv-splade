@@ -125,7 +125,7 @@ class IRTrainer(BaseTrainer):
             name=self.args.wandb_run_name,
             config=dict(self.args.__dict__),
             entity="disco-conv-splade",
-        )
+        ) if self.args.wandb_log else None
         self.logger = logger
         return logger
 

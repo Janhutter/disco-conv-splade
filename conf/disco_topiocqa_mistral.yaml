@@ -82,5 +82,6 @@ hf:
   data:
     distillation: false
     n_negatives: 16
+    wandb_log: True
     wandb_project_name: disco-conv-splade
-    wandb_run_name: disco_topiocqa_mistral_llama
+    wandb_run_name: disco_topiocqa_mistral
