@@ -8,7 +8,7 @@
 #SBATCH --time=10:00:00
 #SBATCH --output=%A.out
 
-config=disco_topiocqa_mistral_llama.yaml
+config=disco_topiocqa_mistral.yaml
 collection_path=DATA/full_wiki_segments_topiocqa.tsv
 index_dir=DATA/topiocqa_index_self
 

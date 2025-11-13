@@ -67,5 +67,26 @@ def main():
     print()
     print("Done!")
 
+
+def create_topiocqa_human():
+    input_path = Path('DATA/topiocqa_rewrites/rewrites_human.json')
+    output_path = Path('DATA/topiocqa_rewrites/rewrites_human_test_last.tsv')
+
+    if not input_path.exists():
+        print(f"Warning: {input_path} not found, skipping...")
+        return
+
+    import json
+    with input_path.open('r') as f:
+        data = json.load(f)
+
+    # take question from each entry and write to tsv
+    with output_path.open('w') as f:
+        for idx, entry in enumerate(data):
+            question = str(entry['question']).strip()
+            f.write(f"{idx}\t{question}\n")
+    print(f"Created {output_path} ({len(data)} entries)")
+
 if __name__ == '__main__':
     main()
+    create_topiocqa_human()
