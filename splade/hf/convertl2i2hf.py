@@ -127,9 +127,10 @@ def convert(exp_dict):
             setattr(t,k, hf.training[k])
     
     #will overwrite default/hf.yaml values    
-    t.output_dir =  config.checkpoint_dir  
+    t.output_dir =  config.checkpoint_dir
     t.fp16=config.get("fp16",True)
     if 'contrastive_weight' in config: t.contrastive_weight = config.contrastive_weight
+    if 'infonce_temperature' in config: t.infonce_temperature = config.infonce_temperature
     if 'wandb_log' in config: t.wandb_log = config.wandb_log
     if 'lr' in config: t.learning_rate = config.lr
     if 'train_batch_size' in config:t.per_device_train_batch_size =config.train_batch_size

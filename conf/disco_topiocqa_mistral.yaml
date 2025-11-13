@@ -1,5 +1,5 @@
 config:
-  wandb_log: True
+  wandb_log: False
   lr: 2.0e-05
   seed: 123
   gradient_accumulation_steps: 1
@@ -21,6 +21,7 @@ config:
   fp16: true
   matching_type: splade
   contrastive_weight: 0.01
+  infonce_temperature: 0.05
   monitoring_ckpt: MRR@10
   tokenizer_type: Luyu/co-condenser-marco
   top_k: 1000
@@ -78,6 +79,7 @@ hf:
     warmup_ratio: 0.01
     mse_margin: false
     weight_decay: 0
+    training_loss: kldiv_InfoNCE_with_weights # kldiv_contrastive_with_weights
   model:
     dense: false
     shared_weights: false

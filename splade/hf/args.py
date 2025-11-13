@@ -116,7 +116,7 @@ class LocalTrainingArguments(TrainingArguments):
     )
 
     training_loss: str = field(
-        metadata={"help": "Which losses to use: contrastive, kldiv, mse_margin, kldiv_mse_margin_with_weights, kldiv_mse_margin_without_weights, kldiv_contrastive_without_weights, kldiv_contrastive_with_weights"},
+        metadata={"help": "Which losses to use: contrastive, InfoNCE, kldiv, mse_margin, kldiv_mse_margin_with_weights, kldiv_mse_margin_without_weights, kldiv_contrastive_without_weights, kldiv_contrastive_with_weights, kldiv_InfoNCE_with_weights, kldiv_InfoNCE_without_weights"},
         default="kldiv_contrastive_with_weights"
     )
 
@@ -173,5 +173,10 @@ class LocalTrainingArguments(TrainingArguments):
     contrastive_weight: float = field(
         metadata={"help": "Weight for contrastive loss (kldiv weight will be 1 - contrastive_weight)"},
         default=0.01,
+    )
+
+    infonce_temperature: float = field(
+        metadata={"help": "Temperature for InfoNCE loss"},
+        default=0.05,
     )
 

@@ -98,8 +98,9 @@ class IRTrainer(BaseTrainer):
         self.dense = dense
         self.loss = self.args.training_loss
         self.contrastive_weight = self.args.contrastive_weight
+        self.infonce_temperature = self.args.infonce_temperature
         self.last_losses = dict()
-        if "contrastive" in self.loss:
+        if "contrastive" in self.loss or "InfoNCE" in self.loss:
             self.last_losses["contrastive"] = list()
         if "mse_margin" in self.loss:
             self.last_losses["mse_margin"] = list()
@@ -107,6 +108,8 @@ class IRTrainer(BaseTrainer):
             self.last_losses["kldiv"] = list()
         print("Loss used: ", self.loss)
         print("Contrastive weight: ", self.contrastive_weight)
+        if "InfoNCE" in self.loss:
+            print("InfoNCE temperature: ", self.infonce_temperature)
 
 
         if self.tokenizer:
@@ -245,9 +248,17 @@ class IRTrainer(BaseTrainer):
 
         losses = list()
 
-        if "contrastive" in self.loss:
+        if "contrastive" in self.loss or "InfoNCE" in self.loss:
             labels_index = torch.zeros(scores.size(0)).to(scores.device).long() # shape (bsz)
-            ce_loss = self.ce_loss(all_scores, labels_index).mean()
+
+            # Use InfoNCE (temperature-scaled) if specified, otherwise use standard cross-entropy
+            if "InfoNCE" in self.loss:
+                # InfoNCE: scale scores by temperature before computing cross-entropy
+                scaled_scores = all_scores / self.infonce_temperature
+                ce_loss = self.ce_loss(scaled_scores, labels_index).mean()
+            else:
+                ce_loss = self.ce_loss(all_scores, labels_index).mean()
+
             if "with_weights" in self.loss:
                 weight = self.contrastive_weight
             else:
