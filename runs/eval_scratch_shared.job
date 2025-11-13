@@ -8,7 +8,6 @@
 #SBATCH --time=1:00:00
 #SBATCH --output=%A.out
 
-
 seed=$1
 
 dataset=$2
@@ -16,9 +15,9 @@ capitalized_dataset=${dataset^^}
 model=$3
 
 config=disco_${dataset}_${model}.yaml
-ckpt_dir=EXP/checkpoint_exp/disco_${capitalized_dataset}_${model}/
+ckpt_dir=/scratch-shared/disco/disco_${capitalized_dataset}_${model}/
 index_dir=DATA/${dataset}_index_self/
-out_dir=EXP/checkpoint_exp/disco_${capitalized_dataset}_${model}_out_${seed}/
+out_dir=/scratch-shared/disco/disco_${capitalized_dataset}_${model}_out_${seed}/
 
 python -m splade.retrieve \
     --config-name=$config \
