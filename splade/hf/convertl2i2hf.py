@@ -129,6 +129,8 @@ def convert(exp_dict):
     #will overwrite default/hf.yaml values    
     t.output_dir =  config.checkpoint_dir  
     t.fp16=config.get("fp16",True)
+    if 'contrastive_weight' in config: t.contrastive_weight = config.contrastive_weight
+    if 'wandb_log' in config: t.wandb_log = config.wandb_log
     if 'lr' in config: t.learning_rate = config.lr
     if 'train_batch_size' in config:t.per_device_train_batch_size =config.train_batch_size
     if "seed" in config: t.seed=config.seed
@@ -140,10 +142,10 @@ def convert(exp_dict):
             # here what if not l1q
             t.l0d = config.regularizer.FLOPS.lambda_d
             try:
-                t.T_d = config.regularizer.FLOPS.T 
+                t.T_d = config.regularizer.FLOPS.T
             except:
                 t.T_d = 0
-            try: 
+            try:
                 t.l0q = config.regularizer.L1.lambda_q
                 t.T_q = config.regularizer.L1.T
             except: # omegaconf.errors.ConfigKeyError

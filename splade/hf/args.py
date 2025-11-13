@@ -155,6 +155,10 @@ class LocalTrainingArguments(TrainingArguments):
         default="none",
     )
 
+    wandb_log: bool = field(
+        metadata={"help": "Whether to log on WandB or not."},
+        default=True,
+    )
 
     wandb_project_name: str = field(
         metadata={"help": "Weights and Biases project name"},
@@ -164,5 +168,10 @@ class LocalTrainingArguments(TrainingArguments):
     wandb_run_name: str = field(
         metadata={"help": "Weights and Biases run name"},
         default="disco_topiocqa_mistral_llama",
+    )
+
+    contrastive_weight: float = field(
+        metadata={"help": "Weight for contrastive loss (kldiv weight will be 1 - contrastive_weight)"},
+        default=0.01,
     )
 
