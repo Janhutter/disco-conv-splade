@@ -17,10 +17,11 @@ def evaluate(exp_dict: DictConfig):
     # for dataset EVAL_QREL_PATH
     # for metric of this qrel
     hydra_chdir(exp_dict)
+    
 
     wandb.init(
                 project='disco-conv-splade_evaluation',
-                name='disco_topiocqa_mistral_llama',
+                name=exp_dict.config.checkpoint_dir,
                 config=dict(exp_dict),
                 entity="disco-conv-splade",
             )

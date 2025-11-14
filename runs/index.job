@@ -5,10 +5,10 @@
 #SBATCH --job-name=index
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=9
-#SBATCH --time=10:00:00
+#SBATCH --time=1:00:00
 #SBATCH --output=%A.out
 
-config=disco_topiocqa_mistral_llama.yaml
+config=disco_topiocqa_mistral.yaml
 collection_path=DATA/full_wiki_segments_topiocqa.tsv
 index_dir=DATA/topiocqa_index_self
 
