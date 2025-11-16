@@ -75,7 +75,7 @@ hf:
     logging_steps: 5000
     save_strategy: epoch
     dataloader_drop_last: true
-    num_train_epochs: 5
+    num_train_epochs: 3
     warmup_ratio: 0.01
     mse_margin: false
     weight_decay: 0
