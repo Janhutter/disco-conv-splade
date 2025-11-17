@@ -3,6 +3,8 @@ from transformers.trainer import Trainer, logger
 from transformers.trainer_callback import PrinterCallback
 from transformers import PreTrainedModel
 import torch
+from torch import nn
+from torch.nn import functional as F
 import os
 import numpy as np
 from splade.utils.utils import generate_bow, clean_bow, pruning
@@ -132,7 +134,6 @@ class IRTrainer(BaseTrainer):
         self.logger = logger
         return logger
 
-
     def log(self, logs: Dict[str, float]) -> None:
         """
         Log `logs` on the various objects watching training.
@@ -212,12 +213,12 @@ class IRTrainer(BaseTrainer):
         del inputs["scores"]
 
         self.compute_lambdas()
-        queries, docs = model(**inputs) # shape (bsz, 1, Vocab), (bsz, nb_neg+1, Vocab)
+        queries, docs = model(**inputs) # shape (bsz, 1, Vocab), (bsz, N+P, Vocab)
         if self.lexical_type != "none":
             total_docs = self.n_positives + self.n_negatives + 1  # 1 query + P positives + N negatives
             input_ids = inputs["input_ids"].reshape(-1, total_docs, inputs['input_ids'].size(1)) #(bsz, 1+P+N, seq_length)
             doc_ids = input_ids[:,1:,:].reshape(-1,input_ids.size(-1)) # (bsz, seq_length)
-            query_ids = input_ids[:,:1,:].reshape(-1,input_ids.size(-1)) # (bsz*(nb_neg+1), seq_length)
+            query_ids = input_ids[:,:1,:].reshape(-1,input_ids.size(-1)) # (bsz*(N+P), seq_length)
             doc_bow = generate_bow(doc_ids,docs.size(-1), device=doc_ids.device)
             doc_bow = clean_bow(doc_bow, pad_id = self.pad_id, cls_id=self.cls_id, sep_id=self.sep_id, mask_id=self.mask_id)
             query_bow = generate_bow(query_ids,queries.size(-1), device=query_ids.device)
@@ -233,7 +234,7 @@ class IRTrainer(BaseTrainer):
         if self.top_q > 0:
             queries = pruning(queries, self.top_q,2)
 
-        # queries shape (bsz, 1, Vocab), docs (bsz, nb_neg+1, Vocab)
+        # queries shape (bsz, 1, Vocab), docs (bsz, N+P, Vocab)
         # positive doc is in first pos
         # in_batch_negatives = True
         # if in_batch_negatives:
@@ -241,23 +242,34 @@ class IRTrainer(BaseTrainer):
         #     scores_in_batch_negatives = torch.matmul(queries, doc_positive.t())  # shape (bsz, bsz)
         scores = torch.bmm(queries, torch.permute(docs, [0, 2, 1])).squeeze(1) # shape (bsz, P+N)
         # Keep existing behavior: treat first column as the "primary" positive for contrastive
-        scores_positive = scores[:, :1]  # (bsz, 1)
-        negatives = docs[:, 1:, :].reshape(-1, docs.size(2)).T  # (Vocab, bsz*(P-1+N))
+        n_positives_for_contrast = 1 # self.n_positives # NOTE: We could try using more than one positive in the contrastive loss as well.
+        scores_positive = scores[:, :n_positives_for_contrast]  # (bsz, P)
+        negatives = docs[:, n_positives_for_contrast:, :].reshape(-1, docs.size(2)).T  # (Vocab, bsz*(P-1+N))
         scores_negative = torch.matmul(queries.squeeze(1), negatives)  # (bsz, bsz*(P-1+N))
         all_scores = torch.cat([scores_positive, scores_negative], dim=1)  # (bsz, bsz*(P-1+N)+1)
 
         losses = list()
 
         if "contrastive" in self.loss or "InfoNCE" in self.loss:
-            labels_index = torch.zeros(scores.size(0)).to(scores.device).long() # shape (bsz)
-
-            # Use InfoNCE (temperature-scaled) if specified, otherwise use standard cross-entropy
-            if "InfoNCE" in self.loss:
-                # InfoNCE: scale scores by temperature before computing cross-entropy
-                scaled_scores = all_scores / self.infonce_temperature
-                ce_loss = self.ce_loss(scaled_scores, labels_index).mean()
+            if n_positives_for_contrast == 1:
+                labels_index = torch.zeros(scores.size(0)).to(scores.device).long() # shape (bsz)
             else:
-                ce_loss = self.ce_loss(all_scores, labels_index).mean()
+                # Create multi-hot labels: first n_positives positions are positive
+                labels = torch.zeros(scores.size(0), all_scores.size(1)).to(scores.device)
+                labels[:, :self.n_positives] = 1.0  # Mark all positive positions as targets
+            
+            if "InfoNCE" in self.loss:
+                scaled_scores = all_scores / self.infonce_temperature
+                # Use BCEWithLogitsLoss for multi-label classification
+                if n_positives_for_contrast == 1:
+                    ce_loss = self.ce_loss(scaled_scores, labels_index).mean()
+                else:
+                    ce_loss = F.binary_cross_entropy_with_logits(scaled_scores, labels, reduction='mean')
+            else:
+                if n_positives_for_contrast == 1:
+                    ce_loss = self.ce_loss(all_scores, labels_index).mean()
+                else:
+                    ce_loss = F.binary_cross_entropy_with_logits(all_scores, labels, reduction='mean')
 
             if "with_weights" in self.loss:
                 weight = self.contrastive_weight

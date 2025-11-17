@@ -1,5 +1,5 @@
 config:
-  wandb_log: True
+  wandb_log: False
   lr: 2.0e-05
   seed: 123
   gradient_accumulation_steps: 1
@@ -11,7 +11,7 @@ config:
   - recall@500
   pretrained_no_yamlconfig: false
   nb_iterations: 150000
-  train_batch_size: 15
+  train_batch_size: 10
   eval_batch_size: 64
   index_retrieve_batch_size: 64
   record_frequency: 10000

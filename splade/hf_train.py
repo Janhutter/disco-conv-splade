@@ -44,7 +44,6 @@ def hf_train(exp_dict: DictConfig):
             model_q=model_args.model_q,
             pooling=model_args.dense_pooling,
         )
-
     else:
         model = SPLADE(
             model_args.model_name_or_path,
