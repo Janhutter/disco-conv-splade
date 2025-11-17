@@ -97,16 +97,19 @@ class IRTrainer(BaseTrainer):
         self.step = 0
         self.dense = dense
         self.loss = self.args.training_loss
-        # self.loss="mse_margin_contrastive_with_weights"
-        # self.loss="contrastive"
+        self.contrastive_weight = self.args.contrastive_weight
+        self.infonce_temperature = self.args.infonce_temperature
         self.last_losses = dict()
-        if "contrastive" in self.loss:
+        if "contrastive" in self.loss or "InfoNCE" in self.loss:
             self.last_losses["contrastive"] = list()
         if "mse_margin" in self.loss:
             self.last_losses["mse_margin"] = list()
         if "kldiv" in self.loss:
             self.last_losses["kldiv"] = list()
         print("Loss used: ", self.loss)
+        print("Contrastive weight: ", self.contrastive_weight)
+        if "InfoNCE" in self.loss:
+            print("InfoNCE temperature: ", self.infonce_temperature)
 
 
         if self.tokenizer:
@@ -245,11 +248,19 @@ class IRTrainer(BaseTrainer):
 
         losses = list()
 
-        if "contrastive" in self.loss:
+        if "contrastive" in self.loss or "InfoNCE" in self.loss:
             labels_index = torch.zeros(scores.size(0)).to(scores.device).long() # shape (bsz)
-            ce_loss = self.ce_loss(all_scores, labels_index).mean()
+
+            # Use InfoNCE (temperature-scaled) if specified, otherwise use standard cross-entropy
+            if "InfoNCE" in self.loss:
+                # InfoNCE: scale scores by temperature before computing cross-entropy
+                scaled_scores = all_scores / self.infonce_temperature
+                ce_loss = self.ce_loss(scaled_scores, labels_index).mean()
+            else:
+                ce_loss = self.ce_loss(all_scores, labels_index).mean()
+
             if "with_weights" in self.loss:
-                weight = 0.01
+                weight = self.contrastive_weight
             else:
                 weight = 1.0
             losses.append(weight*ce_loss)
@@ -309,7 +320,7 @@ class IRTrainer(BaseTrainer):
 
             kldiv_loss = self.distil_loss(student_scores, teacher_scores).sum(dim=1).mean(dim=0)
             if "with_weights" in self.loss:
-                weight = 0.99
+                weight = 1.0 - self.contrastive_weight
             else:
                 weight = 1.0
             losses.append(weight*kldiv_loss)
@@ -321,9 +332,7 @@ class IRTrainer(BaseTrainer):
                     'training/kldiv_teacher_mean': teacher_scores.mean().cpu().detach().item(),
                 })
 
-        loss = 0
-        for loss_ in losses:
-            loss = loss + loss_
+        loss = sum(losses) if len(losses) > 0 else 0
 
         if not self.dense:
             flops = self.lambda_t_d*self._flops(docs.reshape(-1,docs.size(2)))
