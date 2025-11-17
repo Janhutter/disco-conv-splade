@@ -120,3 +120,4 @@ dependencies:
       - tqdm==4.66.4
       - transformers==4.41.2
       - wandb
+      - datasets

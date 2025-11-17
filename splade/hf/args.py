@@ -166,3 +166,8 @@ class LocalTrainingArguments(TrainingArguments):
         default="disco_topiocqa_mistral_llama",
     )
 
+    wandb_log: bool = field(
+        metadata={"help": "Log to Weights and Biases"},
+        default=True,
+    )
+

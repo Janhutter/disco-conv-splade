@@ -70,7 +70,7 @@ def main():
 
 def create_topiocqa_human():
     input_path = Path('DATA/topiocqa_rewrites/rewrites_human.json')
-    output_path = Path('DATA/topiocqa_rewrites/rewrites_human_test_last.tsv')
+    output_path = Path('DATA/topiocqa_rewrites/rewrites_t5_test_last.tsv')
 
     if not input_path.exists():
         print(f"Warning: {input_path} not found, skipping...")

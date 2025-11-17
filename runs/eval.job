@@ -16,7 +16,7 @@ model=$3
 
 config=disco_${dataset}_${model}.yaml
 ckpt_dir=EXP/checkpoint_exp/disco_${capitalized_dataset}_${model}/
-index_dir=/scratch-shared/disco/DATA/${dataset}_index_self/
+index_dir=DATA/${dataset}_index_self/
 out_dir=EXP/checkpoint_exp/disco_${capitalized_dataset}_${model}_out_${seed}/
 
 python -m splade.retrieve \
