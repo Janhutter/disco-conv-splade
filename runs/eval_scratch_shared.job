@@ -1,0 +1,27 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_a100
+#SBATCH --gpus=1
+#SBATCH --job-name=eval
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=1:00:00
+#SBATCH --output=%A.out
+
+seed=$1
+
+dataset=$2
+capitalized_dataset=${dataset^^}
+model=$3
+
+config=disco_${dataset}_${model}.yaml
+ckpt_dir=/scratch-shared/disco/disco_${capitalized_dataset}_${model}/
+index_dir=DATA/${dataset}_index_self/
+out_dir=/scratch-shared/disco/disco_${capitalized_dataset}_${model}_out_${seed}/
+
+python -m splade.retrieve \
+    --config-name=$config \
+    config.checkpoint_dir=$ckpt_dir \
+    config.index_dir=$index_dir \
+    config.out_dir=$out_dir \
+    config.seed=$seed
