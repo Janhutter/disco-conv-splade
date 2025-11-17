@@ -6,3 +6,4 @@ wget -O DATA/topiocqa_topics/raw_dev.json https://zenodo.org/records/6151011/fil
 # Download and extract the collection files for the TopiocQA dataset
 wget -O DATA/full_wiki_segments_topiocqa.tsv https://zenodo.org/records/6149599/files/data/wikipedia_split/full_wiki_segments.tsv?download=1
 
+wget -O DATA/topiocqa_rewrites/rewrites_human.json https://zenodo.org/records/6151011/files/data/gold_passages_info/rewrites_t5_qrecc/dev.json

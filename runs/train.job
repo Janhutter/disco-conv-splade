@@ -11,9 +11,9 @@
 
 port=$(shuf -i 29500-29599 -n 1)
 
-config=disco_topiocqa_mistral_llama.yaml
+config=disco_topiocqa_mistral.yaml
 runpath=DATA/topiocqa_distil/distil_run_top_mistral.json
-ckpt_dir=EXP/checkpoint_exp/disco_TOPIOCQA_mistral/
+ckpt_dir=EXP/checkpoint_exp/disco_TOPIOCQA_mistral_noce/
 
 torchrun --nproc_per_node 1 --master_port $port -m splade.hf_train \
     --config-name=$config  \
