@@ -1,5 +1,5 @@
 config:
-  wandb_log: False
+  wandb_log: True
   lr: 2.0e-05
   seed: 123
   gradient_accumulation_steps: 1
@@ -20,8 +20,8 @@ config:
   max_length: 256
   fp16: true
   matching_type: splade
-  contrastive_weight: 0.01
-  infonce_temperature: 0.05
+  contrastive_weight: 0.10
+  infonce_temperature: 0.08
   monitoring_ckpt: MRR@10
   tokenizer_type: Luyu/co-condenser-marco
   top_k: 1000
@@ -75,7 +75,7 @@ hf:
     logging_steps: 5000
     save_strategy: epoch
     dataloader_drop_last: true
-    num_train_epochs: 5
+    num_train_epochs: 3
     warmup_ratio: 0.01
     mse_margin: false
     weight_decay: 0
@@ -87,4 +87,4 @@ hf:
     distillation: false
     n_negatives: 16
     wandb_project_name: disco-conv-splade
-    wandb_run_name: disco_topiocqa_mistral
+    wandb_run_name: disco_topiocqa_mistral_InfoNCE_010
