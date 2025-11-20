@@ -14,3 +14,5 @@ outputs/
 *.out
 
 wandb/
+
+test_shards_sparse/
