@@ -75,7 +75,7 @@ hf:
     logging_steps: 5000
     save_strategy: epoch
     dataloader_drop_last: true
-    num_train_epochs: 3
+    num_train_epochs: 7
     warmup_ratio: 0.01
     mse_margin: false
     weight_decay: 0
@@ -85,6 +85,7 @@ hf:
     shared_weights: false
   data:
     distillation: false
+    n_positives: 16
     n_negatives: 16
     wandb_project_name: disco-conv-splade
-    wandb_run_name: disco_topiocqa_mistral_InfoNCE_005
+    wandb_run_name: disco_topiocqa_mistral_InfoNCE_005_16p

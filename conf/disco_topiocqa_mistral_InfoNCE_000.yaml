@@ -20,7 +20,7 @@ config:
   max_length: 256
   fp16: true
   matching_type: splade
-  contrastive_weight: 0.10
+  contrastive_weight: 0.00
   infonce_temperature: 0.08
   monitoring_ckpt: MRR@10
   tokenizer_type: Luyu/co-condenser-marco
@@ -79,7 +79,7 @@ hf:
     warmup_ratio: 0.01
     mse_margin: false
     weight_decay: 0
-    training_loss: kldiv_InfoNCE_with_weights # kldiv_contrastive_with_weights
+    training_loss: kldiv # kldiv_contrastive_with_weights
   model:
     dense: false
     shared_weights: false
@@ -88,4 +88,4 @@ hf:
     n_positives: 16
     n_negatives: 16
     wandb_project_name: disco-conv-splade
-    wandb_run_name: disco_topiocqa_mistral_InfoNCE_010_16p
+    wandb_run_name: disco_topiocqa_mistral_InfoNCE_000_16p
