@@ -17,6 +17,14 @@ queries_row_id_last_train = []
 
 row_id = 0
 
+def create_url2id_mapping(dataset):
+    url2id = {}
+    ids = 0
+    for split in ["train", "test"]:
+        for entry in dataset[split]:
+            url2id[entry['Answer_URL']] = ids
+            ids += 1
+    return url2id
 
 
 human_rewrites_test = []
@@ -31,6 +39,7 @@ def trunc_content(context):
             truncated_context.append(c[: (100 * 5)].strip())
     return truncated_context
 
+url2id = create_url2id_mapping(dataset)
 for split in ["train", "test"]:
     for entry in dataset[split]:
         conv_no = entry["Conversation_no"]
@@ -38,6 +47,10 @@ for split in ["train", "test"]:
         context = entry["Context"]
         rewrite = entry["Truth_rewrite"]
         answer = entry["Truth_answer"]
+        # Truth_passages contains URLs; we need to map them to integer passage ids
+        # using the url2id mapping provided by the qrecc-passages dataset
+        truth_passages = entry["Answer_URL"]
+        
         context.reverse()
         user_question = entry["Question"] if turn_no != 1 else entry["Truth_rewrite"]
         context = trunc_content(context)
@@ -51,14 +64,14 @@ for split in ["train", "test"]:
             queries_row_id_all_test.append((row_id, all_user_question))
             queries_row_id_last_test.append((row_id, user_question))
             human_rewrites_test.append((row_id, entry["Truth_rewrite"]))
-            for passage in entry["Truth_passages"]:
-                qrels_test.setdefault(row_id, {})[passage] = 1
+            passage_id = url2id[truth_passages]
+            qrels_test.setdefault(row_id, {})[passage_id] = 1
         else:
             queries_row_id_all_train.append((row_id, all_user_question))
             queries_row_id_last_train.append((row_id, user_question))
             human_rewrites_train.append((row_id, entry["Truth_rewrite"]))
-            for passage in entry["Truth_passages"]:
-                qrels_train.setdefault(row_id, {})[passage] = 1
+            passage_id = url2id[truth_passages]
+            qrels_train.setdefault(row_id, {})[passage_id] = 1
 
         row_id += 1
 
@@ -94,9 +107,18 @@ dataset = load_dataset("slupart/qrecc-passages", split="train")
 buffer = []
 buffer_size = 10_000
 
+not_found = 0
+last_id = len(url2id)
 with open("DATA/qrecc/passages.tsv", "w") as f:
     for entry in dataset:
-        buffer.append(f"{entry['id']}\t{entry['contents']}\n")
+        if entry['id'] not in url2id:
+            not_found += 1
+            new_id = last_id
+            last_id += 1
+            url2id[entry['id']] = new_id
+        else:
+            new_id = url2id[entry['id']]
+        buffer.append(f"{new_id}\t{entry['contents']}\n")
         if len(buffer) >= buffer_size:
             f.writelines(buffer)
             buffer = []
@@ -105,49 +127,4 @@ with open("DATA/qrecc/passages.tsv", "w") as f:
     if buffer:
         f.writelines(buffer)
 
-# qrels = {}
-# notin=0
-# rowid=0
-# with open("/gpfs/work4/0/prjs0871/qrecc/scai/test.json", "r") as f:
-#     qrecc_qrel = json.load(f)
-#     with open("/gpfs/work4/0/prjs0871/qrecc/scai/rowid_queries_human_qrecc_test.tsv", "w") as tsv_queries_human:
-#         with open("/gpfs/work4/0/prjs0871/qrecc/scai/rowid_queries_raw_qrecc_test.tsv", "w") as tsv_queries:
-#             with open("/gpfs/work4/0/prjs0871/qrecc/scai/rowid_queries_all_qrecc_test.tsv", "w") as tsv_queries_all:
-#                 for topic_turn in qrecc_qrel:
-#                     turn_id = str(topic_turn["Conversation_no"])+"_"+str(topic_turn["Turn_no"])
-#                     ctx_conv = topic_turn["Context"]
-#                     ctx_conv_shorten = []
-#                     for i, c in enumerate(ctx_conv):
-#                         if i%2==0:
-#                             ctx_conv_shorten.append(c[:(64*5)].strip())
-#                         else:
-#                             ctx_conv_shorten.append(c[:(100*5)].strip())
-#                     ctx_conv = ctx_conv_shorten
-#                     ctx_conv.reverse()
-#                     # ctx_conv = [c[:(64*5)].strip() for c in ctx_conv]
-#                     ctx = " [SEP] ".join(ctx_conv).replace("\n", " ").strip()
-#                     user_question = topic_turn["Question"] if int(topic_turn['Turn_no']) != 1 else topic_turn["Truth_rewrite"]
-#                     user_question = user_question.replace("\n", " ")[:(64*5)].strip()
-#                     all_user_question = user_question + " [SEP] " + ctx
-#                     tsv_queries.write(str(rowid)+"\t"+user_question+"\n")
-#                     tsv_queries_all.write(str(rowid)+"\t"+all_user_question+"\n")
-#                     tsv_queries_human.write(str(rowid)+"\t"+topic_turn["Truth_rewrite"]+"\n")
-
-#                     # ctx = topic_turn["Question"].strip()
-
-#                     # all_user_question = topic_turn["question"].split("[SEP]")
-#                     # all_user_question.reverse()
-#                     # tsv_queries.write(turn_id+"\t"+user_question+"\n")
-#                     # tsv_queries_all.write(turn_id+"\t"+"[SEP]".join(all_user_question)+"\n")
-#                     # if topic_turn["Answer_URL"] in url2id:
-#                     #     qrels[turn_id] = {url2id[topic_turn["Answer_URL"]]: 1}
-#                     for t in topic_turn["Truth_passages"]:
-#                         if t in url2id:
-#                             qrels[turn_id] = {url2id[t]: 1}
-#                         else:
-#                             notin+=1
-#                     rowid+=1
-# print(len(qrecc_qrel))
-# print(len(qrels))
-# print(notin)
-# json.dump(qrels, open("/gpfs/work4/0/prjs0871/qrecc/scai/qrels_qrecc_test.json", "w"))
+print(f"Number of passages not found in url2id mapping: {not_found}")

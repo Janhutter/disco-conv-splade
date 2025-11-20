@@ -12,9 +12,10 @@
 # collection_path=DATA/full_wiki_segments_topiocqa.tsv
 # index_dir=DATA/topiocqa_index_self
 
-config=disco_qrecc_mistral.yaml
-collection_path=DATA/qrecc/passages.tsv
-index_dir=DATA/qrecc_index_self
+config=disco_cast20_mistral.yaml
+collection_path=DATA/cast20/passages.tsv
+index_dir=DATA/cast20/cast20_index_self
+
 
 python -m splade.index --config-name=$config \
     init_dict.model_type_or_dir=naver/splade-cocondenser-ensembledistil \
@@ -22,4 +23,4 @@ python -m splade.index --config-name=$config \
     config.hf_training=false \
     config.index_dir="$index_dir" \
     data.COLLECTION_PATH="$collection_path" \
-    config.index_retrieve_batch_size=16
+    config.index_retrieve_batch_size=256
