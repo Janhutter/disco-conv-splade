@@ -50,7 +50,7 @@ config:
   out_dir: ??
   hf_training: true
   config.lr: 2.0e-05
-  training_loss: kldiv_contrastive
+  training_loss: kldiv_contrastive_with_weights
 data:
   type: json
   TRAIN:

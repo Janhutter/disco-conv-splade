@@ -8,6 +8,7 @@
 #SBATCH --time=1:00:00
 #SBATCH --output=%A.out
 
+
 seed=$1
 
 dataset=$2
