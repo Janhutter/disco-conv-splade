@@ -70,6 +70,9 @@ def convert(exp_dict):
     """
 
     for k in hf.data.keys():
+        # wandb settings belong to training args, not data args
+        if k in ['wandb_project_name', 'wandb_run_name', 'wandb_log']:
+            continue
         setattr(d,k, hf.data[k])
 
 
@@ -126,12 +129,18 @@ def convert(exp_dict):
         else:
             setattr(t,k, hf.training[k])
     
-    #will overwrite default/hf.yaml values    
+    #will overwrite default/hf.yaml values
     t.output_dir =  config.checkpoint_dir
     t.fp16=config.get("fp16",True)
     if 'contrastive_weight' in config: t.contrastive_weight = config.contrastive_weight
     if 'infonce_temperature' in config: t.infonce_temperature = config.infonce_temperature
     if 'wandb_log' in config: t.wandb_log = config.wandb_log
+
+    # Read wandb settings from hf.data if present
+    if 'wandb_project_name' in hf.data: t.wandb_project_name = hf.data.wandb_project_name
+    if 'wandb_run_name' in hf.data: t.wandb_run_name = hf.data.wandb_run_name
+    if 'wandb_log' in hf.data: t.wandb_log = hf.data.wandb_log
+
     if 'lr' in config: t.learning_rate = config.lr
     if 'train_batch_size' in config:t.per_device_train_batch_size =config.train_batch_size
     if "seed" in config: t.seed=config.seed

@@ -1,5 +1,6 @@
 import os
 import random
+import time
 
 import numpy as np
 import torch
@@ -172,7 +173,11 @@ def get_initialize_config(exp_dict: DictConfig, train=False):
     config = exp_dict["config"]
     init_dict = exp_dict["init_dict"]
     if train:
-        os.makedirs(exp_dict.config.checkpoint_dir, exist_ok=True)
+        # First remove trailing "/", then append current timestamp.
+        if config["checkpoint_dir"].endswith("/"):
+            config["checkpoint_dir"] = config["checkpoint_dir"][:-1]
+        config["checkpoint_dir"] += f"_{str(round(time.time()))}/"
+        os.makedirs(config["checkpoint_dir"], exist_ok=True)
         OmegaConf.save(config=exp_dict, f=os.path.join(exp_dict.config.checkpoint_dir, "config.yaml"))
         model_training_config = None
     else:

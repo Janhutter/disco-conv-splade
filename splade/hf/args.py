@@ -180,8 +180,3 @@ class LocalTrainingArguments(TrainingArguments):
         default=0.05,
     )
 
-    wandb_log: bool = field(
-        metadata={"help": "Log to Weights and Biases"},
-        default=True,
-    )
-
