@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --partition=gpu_a100
+#SBATCH --partition=gpu_h100
 #SBATCH --gpus=1
 #SBATCH --job-name=eval
 #SBATCH --ntasks=1
@@ -19,6 +19,9 @@ config=disco_${dataset}_${model}.yaml
 ckpt_dir=EXP/checkpoint_exp/disco_${capitalized_dataset}_${model}/
 index_dir=DATA/${dataset}_index_self/
 out_dir=EXP/checkpoint_exp/disco_${capitalized_dataset}_${model}_out_${seed}/
+
+# Ensure CONFIG_CHOICE.py uses the same config (including subfolders)
+export SPLADE_CONFIG_NAME=$config
 
 python -m splade.retrieve \
     --config-name=$config \

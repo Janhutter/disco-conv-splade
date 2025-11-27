@@ -14,7 +14,36 @@ from tqdm.auto import tqdm
 
 
 class IndexDictOfArray:
+    """
+    Inverted index implementation using arrays for efficient sparse retrieval.
+    
+    This class maintains an inverted index where:
+    - Each vocabulary dimension (token) maps to lists of document IDs and their corresponding values
+    - Uses HDF5 for persistent storage and numpy arrays for efficient computation
+    - Supports both creation of new indices and loading existing ones
+    
+    The index structure:
+    - index_doc_id[dim_id] -> array of document IDs containing this dimension
+    - index_doc_value[dim_id] -> array of values for this dimension in corresponding documents
+    
+    Attributes:
+        index_path (str): Directory path for storing index files
+        filename (str): Full path to the HDF5 index file
+        index_doc_id (dict): Maps dimension IDs to arrays of document IDs
+        index_doc_value (dict): Maps dimension IDs to arrays of corresponding values
+        n (int): Total number of documents in the index
+    """
+
     def __init__(self, index_path=None, force_new=False, filename="array_index.h5py", dim_voc=None):
+        """
+        Initialize the inverted index.
+        
+        Args:
+            index_path (str, optional): Directory to store/load index files. If None, creates in-memory index.
+            force_new (bool): If True, creates new index even if existing one found. Defaults to False.
+            filename (str): Name of the HDF5 file for persistent storage. Defaults to "array_index.h5py".
+            dim_voc (int, optional): Vocabulary dimension size. If None, reads from existing index.
+        """
         if index_path is not None:
             self.index_path = index_path
             if not os.path.exists(index_path):
@@ -57,7 +86,14 @@ class IndexDictOfArray:
             self.index_doc_value = defaultdict(lambda: array.array("f"))
 
     def add_batch_document(self, row, col, data, n_docs=-1):
-        """add a batch of documents to the index
+        """
+        Add a batch of documents to the index in sparse format.
+        
+        Args:
+            row (array-like): Document IDs for each non-zero entry
+            col (array-like): Dimension IDs (vocabulary tokens) for each non-zero entry  
+            data (array-like): Values for each non-zero entry
+            n_docs (int): Number of unique documents being added. If -1, computed from unique row values.
         """
         if n_docs < 0:
             self.n += len(set(row))
@@ -68,12 +104,23 @@ class IndexDictOfArray:
             self.index_doc_value[dim_id].append(value)
 
     def __len__(self):
+        """Return the number of vocabulary dimensions in the index."""
         return len(self.index_doc_id)
 
     def nb_docs(self):
+        """Return the total number of documents in the index."""
         return self.n
 
     def save(self, dim=None):
+        """
+        Save the index to disk in HDF5 format.
+        
+        Converts internal array.array structures to numpy arrays and saves to HDF5.
+        Also saves index distribution statistics as JSON.
+        
+        Args:
+            dim (int, optional): Vocabulary dimension size to save. If None, uses current index size.
+        """
         print("converting to numpy")
         for key in tqdm(list(self.index_doc_id.keys())):
             self.index_doc_id[key] = np.array(self.index_doc_id[key], dtype=np.int32)

@@ -18,7 +18,25 @@ from ..utils.utils import makedir, to_list
 
 
 class SparseIndexing(Evaluator):
-    """sparse indexing
+    """
+    Sparse indexing evaluator for building inverted indices from document collection.
+    Uses the model to generate sparse representations for batchese of documents, 
+    then builds an inverted index for efficient retrieval. It supports both document 
+    and query indexing modes.
+    
+    The indexing process:
+    1. Encodes documents/queries using the model to get sparse representations
+    2. Extracts non-zero dimensions and their values from the sparse vectors (i.e. those tokens that are relevat)
+    3. Builds an inverted index mapping each vocabulary dimension to document IDs and values
+    4. Optionally computes sparsity statistics (L0 regularization)
+    5. Saves the index to disk or returns it in-memory
+    
+    Attributes:
+        index_dir (str): Directory path for saving the index files
+        sparse_index (IndexDictOfArray): The inverted index data structure
+        compute_stats (bool): Whether to compute L0 sparsity statistics
+        is_query (bool): Whether indexing queries (True) or documents (False)
+        l0 (L0): L0 regularization loss for computing sparsity statistics
     """
 
     def __init__(self, model, config, compute_stats=False, dim_voc=None, is_query=False, force_new=True,**kwargs):
@@ -31,6 +49,13 @@ class SparseIndexing(Evaluator):
             self.l0 = L0()
 
     def index(self, collection_loader, id_dict=None):
+        """
+        Adds documents to the sparse index after embedding using the embeddings.
+        
+        Attributes:
+            collection_loader (CollectionDataLoader): Loads batches of documents
+            id_dict (dict): If provided, translates ids to new set of ids.
+        """
         doc_ids = []
         if self.compute_stats:
             stats = defaultdict(float)

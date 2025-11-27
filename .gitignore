@@ -1,5 +1,5 @@
 # Ignore experiment outputs and data
-EXP/
+EXP/x
 DATA/
 
 # Ignore Python cache
@@ -17,3 +17,4 @@ wandb/
 
 test_shards_sparse/
 disco_TOPIOCQA_mistral/
+model/

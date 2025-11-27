@@ -268,9 +268,14 @@ class IRTrainer(BaseTrainer):
 
             if self.logger is not None:
                 self.logger.log({
-                    'training/contrastive_scores_positive_mean': scores_positive.mean().cpu().detach().item(),
-                    'training/contrastive_scores_negative_mean': scores_negative.mean().cpu().detach().item(),
+                    'training/ce_loss_mean': ce_loss.mean().cpu().detach().item(),
                 })
+
+        if self.logger is not None:
+            self.logger.log({
+                'training/contrastive_scores_positive_mean': scores_positive.mean().cpu().detach().item(),
+                'training/contrastive_scores_negative_mean': scores_negative.mean().cpu().detach().item(),
+            })
 
         if "mse_margin" in self.loss:
             # Align teacher and student over the common number of candidates per query
