@@ -19,12 +19,12 @@ def evaluate(exp_dict: DictConfig):
     hydra_chdir(exp_dict)
     
 
-    wandb.init(
-                project='disco-conv-splade_evaluation',
-                name=exp_dict.config.checkpoint_dir,
-                config=dict(exp_dict),
-                entity="disco-conv-splade",
-            )
+    # wandb.init(
+    #             project='disco-conv-splade_evaluation',
+    #             name=exp_dict.config.checkpoint_dir,
+    #             config=dict(exp_dict),
+    #             entity="disco-conv-splade",
+    #         )
 
     eval_qrel_path = exp_dict.data.EVAL_QREL_PATH
     eval_metric = exp_dict.config.eval_metric
@@ -55,7 +55,7 @@ def evaluate(exp_dict: DictConfig):
                 res_full_all_datasets[dataset_name] = res_full
             out_fp = os.path.join(out_dir, dataset_name, "perf.json")
             json.dump(res, open(out_fp,"a"))
-            wandb.log({f"{dataset_name}/{k}": v for k, v in res.items()})
+            # wandb.log({f"{dataset_name}/{k}": v for k, v in res.items()})
 
     out_all_fp= os.path.join(out_dir, "perf_all_datasets_solo.json")
     json.dump(res_all_datasets, open(out_all_fp, "a"))
@@ -66,8 +66,10 @@ def evaluate(exp_dict: DictConfig):
     with open(out_all_fp,"a") as out_all_fp_open:
         out_all_fp_open.write('\n')
 
-    wandb.log({"all_datasets": res_all_datasets})
-    wandb.finish()
+    
+
+    # wandb.log({"all_datasets": res_all_datasets})
+    # wandb.finish()
 
     return res_all_datasets
 

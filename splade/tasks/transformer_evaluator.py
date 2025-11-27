@@ -9,9 +9,6 @@ import numpy as np
 import torch
 from tqdm.auto import tqdm
 
-from collections import OrderedDict
-
-
 import time
 
 from ..indexing.inverted_index import IndexDictOfArray
@@ -120,12 +117,8 @@ class SparseRetrieval(Evaluator):
         super().__init__(model, config, **kwargs)
         assert ("index_dir" in config and index_d is None) or (
                 "index_dir" not in config and index_d is not None)
-        
         if "index_dir" in config:
             self.sparse_index = IndexDictOfArray(config["index_dir"], dim_voc=dim_voc)
-            self.doc_ids = pickle.load(open(os.path.join(config["index_dir"], "doc_ids.pkl"), "rb"))
-            self.sparse_index = IndexDictOfArray(config["index_dir"], dim_voc=dim_voc)
-            self.nb_docs_global = self.sparse_index.nb_docs()
             self.doc_ids = pickle.load(open(os.path.join(config["index_dir"], "doc_ids.pkl"), "rb"))
         else:
             self.sparse_index = index_d["index"]
@@ -136,46 +129,16 @@ class SparseRetrieval(Evaluator):
                     self.sparse_index.index_doc_id[i] = np.array([], dtype=np.int32)
                     self.sparse_index.index_doc_value[i] = np.array([], dtype=np.float32)
         # convert to numba
-        if not config.get("sharding", False):
-            self.numba_index_doc_ids = numba.typed.Dict()
-            self.numba_index_doc_values = numba.typed.Dict()
-            for key, value in self.sparse_index.index_doc_id.items():
-                self.numba_index_doc_ids[key] = value
-            for key, value in self.sparse_index.index_doc_value.items():
-                self.numba_index_doc_values[key] = value
-            self.out_dir = os.path.join(config["out_dir"], dataset_name) if (dataset_name is not None and not is_beir) \
-                else config["out_dir"]
-            self.doc_stats = index_d["stats"] if (index_d is not None and compute_stats) else None
-            self.compute_stats = compute_stats
-        else:
-            self.shard_base = config.get("shard_dir", config.get("index_dir"))
-            if self.shard_base is None:
-                raise ValueError("sharding enabled but no shard_dir/index_dir provided in config")
-
-            # config options
-            self.shard_top_m = config.get("shard_top_m", 2)         # how many shards to search
-            self.shard_head_type = config.get("shard_head_type", "top_dims")  # currently supports "top_dims"
-            self.shard_cache_size = config.get("shard_cache_size", 4)  # number of open shards to cache
-
-            # load shard metadata (fast)
-            self.shard_metadata = self._discover_and_load_shard_metadata(self.shard_base)
-
-            # compute nb_docs_global from sum of documents across shard doclists if not available
-            if self.nb_docs_global is None:
-                # try sum of lengths of shard doclists (if present)
-                total = 0
-                for sid, md in self.shard_metadata.items():
-                    if "doclist_len" in md:
-                        total += md["doclist_len"]
-                if total > 0:
-                    self.nb_docs_global = total
-                else:
-                    # as a fallback set to config value or raise
-                    self.nb_docs_global = config.get("nb_docs", None)
-                    if self.nb_docs_global is None:
-                        raise RuntimeError("Cannot infer global nb_docs; provide index_dir or nb_docs in config")
-
-
+        self.numba_index_doc_ids = numba.typed.Dict()
+        self.numba_index_doc_values = numba.typed.Dict()
+        for key, value in self.sparse_index.index_doc_id.items():
+            self.numba_index_doc_ids[key] = value
+        for key, value in self.sparse_index.index_doc_value.items():
+            self.numba_index_doc_values[key] = value
+        self.out_dir = os.path.join(config["out_dir"], dataset_name) if (dataset_name is not None and not is_beir) \
+            else config["out_dir"]
+        self.doc_stats = index_d["stats"] if (index_d is not None and compute_stats) else None
+        self.compute_stats = compute_stats
         if self.compute_stats:
             self.l0 = L0()
 

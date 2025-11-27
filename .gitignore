@@ -16,3 +16,4 @@ outputs/
 wandb/
 
 test_shards_sparse/
+disco_TOPIOCQA_mistral/

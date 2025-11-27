@@ -30,15 +30,16 @@ class IndexDictOfArray:
                 self.index_doc_id = dict()
                 self.index_doc_value = dict()
                 for key in tqdm(range(dim)):
-                    try:
-                        self.index_doc_id[key] = np.array(self.file["index_doc_id_{}".format(key)],
-                                                          dtype=np.int32)
-                        # ideally we would not convert to np.array() but we cannot give pool an object with hdf5
-                        self.index_doc_value[key] = np.array(self.file["index_doc_value_{}".format(key)],
-                                                             dtype=np.float32)
-                    except:
-                        self.index_doc_id[key] = np.array([], dtype=np.int32)
-                        self.index_doc_value[key] = np.array([], dtype=np.float32)
+                    id_ds  = self.file.get(f"index_doc_id_{key}")
+                    val_ds = self.file.get(f"index_doc_value_{key}")
+
+                    if id_ds is None or val_ds is None:
+                        self.index_doc_id[key] = np.empty(0, dtype=np.int32)
+                        self.index_doc_value[key] = np.empty(0, dtype=np.float32)
+                    else:
+                        self.index_doc_id[key] = (id_ds[()].astype(np.int32))
+                        self.index_doc_value[key] = (val_ds[()].astype(np.float32))
+                        
                 self.file.close()
                 del self.file
                 print("done loading index...")
