@@ -242,9 +242,10 @@ class IRTrainer(BaseTrainer):
         #     scores_in_batch_negatives = torch.matmul(queries, doc_positive.t())  # shape (bsz, bsz)
         scores = torch.bmm(queries, torch.permute(docs, [0, 2, 1])).squeeze(1) # shape (bsz, P+N)
         # Keep existing behavior: treat first column as the "primary" positive for contrastive
-        n_positives_for_contrast = self.n_positives # 1 # NOTE: We could try using more than one positive in the contrastive loss as well.
+        n_positives_for_contrast = 1 # self.n_positive# NOTE: We could try using more than one positive in the contrastive loss as well.
         scores_positive = scores[:, :n_positives_for_contrast]  # (bsz, P)
-        negatives = docs[:, n_positives_for_contrast:, :].reshape(-1, docs.size(2)).T  # (Vocab, bsz*(P-1+N))
+        num_positives_to_be_added_to_negatives = self.n_positives - 1 # Add the non-hard positives to the negatives
+        negatives = docs[:, n_positives_for_contrast+num_positives_to_be_added_to_negatives:, :].reshape(-1, docs.size(2)).T  # (Vocab, bsz*(P-1+N))
         scores_negative = torch.matmul(queries.squeeze(1), negatives)  # (bsz, bsz*(P-1+N))
         all_scores = torch.cat([scores_positive, scores_negative], dim=1)  # (bsz, bsz*(P-1+N)+1)
 
