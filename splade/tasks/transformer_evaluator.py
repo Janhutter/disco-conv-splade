@@ -137,7 +137,7 @@ class SparseRetrieval(Evaluator):
         # unused documents => this should be tuned, currently it is set to 0
         return filtered_indexes, -scores[filtered_indexes]
 
-    def __init__(self, model, config, dim_voc, dataset_name=None, index_d=None, compute_stats=False, is_beir=False,
+    def __init__(self, model, config, dim_voc, dataset_name=None, index_d=None, compute_stats=True, is_beir=False,
                  **kwargs):
         super().__init__(model, config, **kwargs)
         assert ("index_dir" in config and index_d is None) or (
@@ -229,7 +229,7 @@ class SparseRetrieval(Evaluator):
         
         if self.compute_stats:
             stats = {key: value / len(q_loader) for key, value in stats.items()}
-        if self.compute_stats:
+
             with open(os.path.join(self.out_dir, "stats",
                                    "q_stats{}.json".format("_iter_{}".format(name) if name is not None else "")),
                       "w") as handler:
