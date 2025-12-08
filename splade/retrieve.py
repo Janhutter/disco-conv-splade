@@ -19,10 +19,10 @@ def retrieve_evaluate(exp_dict: DictConfig):
     # Ensure deterministic behavior if a seed is provided in config (config.random_seed)
     set_seed_from_config(config)
 
-    #if HF: need to udate config.
+    #if HF: need to update config.
     if "hf_training" in config and config["hf_training"]:
-       init_dict.model_type_or_dir=os.path.join(config.checkpoint_dir,"model")
-       init_dict.model_type_or_dir_q=os.path.join(config.checkpoint_dir,"model/query") if init_dict.model_type_or_dir_q else None
+       init_dict.model_type_or_dir=config.checkpoint_dir
+       init_dict.model_type_or_dir_q=os.path.join(config.checkpoint_dir,"query") if init_dict.model_type_or_dir_q else None
        restore = True
     else:
         restore = False
