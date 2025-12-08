@@ -1,0 +1,44 @@
+[
+  {
+    "query_id": 0,
+    "query": "when will the new dunkirk film be released on dvd",
+    "highest_sim": {
+      "doc_id": 5498208,
+      "text": "The army personnel and thousands of Australian airmen also took part in the subsequent Battle of Normandy between June and August 1944, and an RAAF fighter squadron operated from airfields in Normandy. Throughout the campaign, Australian airmen provided direct support to the Allied ground forces by attacking German military units and their supply lines, as well as forming part of the force that defended the beachhead from air attack and manning transport aircraft. Australians also indirectly supported the campaign by attacking German submarines and ships that threatened the invasion force. The 13 Australian Army officers who took part in the campaign filled a variety of roles in British units in order to gain experience that they could take back to Australia.",
+      "title": "Australian contribution to the Battle of Normandy [SEP] Introduction"
+    },
+    "lowest_sim": {
+      "doc_id": 8376821,
+      "text": "The Battle of Bardia was fought between 3 and 5 January 1941, as part of Operation Compass, the first British military operation of the Western Desert Campaign of the Second World War. It was the first battle of the war in which an Australian Army formation took part, the first to be commanded by an Australian general and the first to be planned by an Australian staff. The 6th Australian Division (Major General Iven Mackay) assaulted the strongly held Italian fortress of Bardia, Libya, assisted by air support and naval gunfire and under the cover of an artillery barrage. The 16th Australian Infantry Brigade attacked at dawn from the west, where the defences were known to be weak.",
+      "title": "Battle of Bardia [SEP] Introduction"
+    }
+  },
+  {
+    "query_id": 1,
+    "query": " what is this film about [SEP]  18 december 2017  [SEP] when will the new dunkirk film be released on dvd ",
+    "highest_sim": {
+      "doc_id": 5498209,
+      "text": "Australian personnel also took part in the invasion of Southern France in August 1944, and RAAF airmen continued to operate against German forces until the end of the war in May 1945. However, the relatively low casualties suffered by the Allied air forces during the fighting in Normandy and subsequent campaigns resulted in an over-supply of trained Australian aircrew in the UK, hundreds of whom were never assigned to a combat role. Australia's contribution to the fighting in Normandy is commemorated in memorials and cemeteries in London and Normandy.",
+      "title": "Australian contribution to the Battle of Normandy [SEP] Introduction"
+    },
+    "lowest_sim": {
+      "doc_id": 7240349,
+      "text": "The 2nd Australian Division occupied the Butte de Warlencourt on 24 February 1917, during the German retirements on the Somme front, preparatory to the retreat to the Hindenburg Line.",
+      "title": "Attacks on the Butte de Warlencourt [SEP] 24 February 1917"
+    }
+  },
+  {
+    "query_id": 2,
+    "query": " can you mention a few members of the cast [SEP]  dunkirk evacuation of world war ii  [SEP]  what is this film about  [SEP]  18 december 2017  [SEP] when will the new dunkirk film be released on dvd ",
+    "highest_sim": {
+      "doc_id": 12090763,
+      "text": "The Battle of Villers-Bocage was a significant battle between British and German forces on 13 June 1944 during the Battle of Normandy. Further fighting occurred two weeks later during Operation Epsom, during which the village was destroyed by 250 RAF heavy bombers.",
+      "title": "Villers-Bocage, Calvados [SEP] Second World War"
+    },
+    "lowest_sim": {
+      "doc_id": 20496468,
+      "text": "The Allies established a bridgehead north of Caen on the east bank of the Orne, which protected the beachhead, forced the Germans to oppose with scarce tank units needed elsewhere and provided a jumping-off position for later attacks towards Caen.",
+      "title": "Battle of Le Mesnil-Patry [SEP] Invasion of Normandy"
+    }
+  }
+]
