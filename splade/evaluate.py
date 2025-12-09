@@ -9,7 +9,7 @@ from splade.evaluation.eval import load_and_evaluate
 from splade.utils.utils import get_dataset_name
 from splade.utils.hydra import hydra_chdir
 
-import wandb
+import wandbx
 
 @hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME,version_base="1.2")
 def evaluate(exp_dict: DictConfig):
