@@ -20,7 +20,7 @@ config:
   max_length: 256
   fp16: true
   matching_type: splade
-  contrastive_weight: 0.05
+  contrastive_weight: 0.20
   infonce_temperature: 0.08
   monitoring_ckpt: MRR@10
   tokenizer_type: Luyu/co-condenser-marco
@@ -76,7 +76,7 @@ hf:
     logging_steps: 5000
     save_strategy: epoch
     dataloader_drop_last: true
-    num_train_epochs: 3
+    num_train_epochs: 7
     warmup_ratio: 0.01
     mse_margin: false
     weight_decay: 0
@@ -88,4 +88,4 @@ hf:
     distillation: false
     n_negatives: 16
     wandb_project_name: disco-conv-splade
-    wandb_run_name: disco_topiocqa_mistral_InfoNCE_005
+    wandb_run_name: disco_topiocqa_mistral_InfoNCE_010

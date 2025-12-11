@@ -5,9 +5,14 @@
 #SBATCH --job-name=index
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=9
-#SBATCH --time=10:00:00
+#SBATCH --time=1:00:00
 #SBATCH --output=%A.out
 
+<<<<<<< HEAD
+config=disco_topiocqa_mistral.yaml
+collection_path=DATA/full_wiki_segments_topiocqa.tsv
+index_dir=DATA/topiocqa_index_self
+=======
 # config=disco_topiocqa_mistral.yaml
 # collection_path=DATA/full_wiki_segments_topiocqa.tsv
 # index_dir=DATA/topiocqa_index_self
@@ -16,6 +21,7 @@ config=disco_cast20_mistral.yaml
 collection_path=DATA/cast20/passages.tsv
 index_dir=DATA/cast20/cast20_index_self
 
+>>>>>>> de00a0c6509bee886967f06a97084e552c9270aa
 
 python -m splade.index --config-name=$config \
     init_dict.model_type_or_dir=naver/splade-cocondenser-ensembledistil \

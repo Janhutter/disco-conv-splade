@@ -1,5 +1,5 @@
 config:
-  wandb_log: True
+  wandb_log: False
   lr: 2.0e-05
   seed: 123
   gradient_accumulation_steps: 1
@@ -9,10 +9,14 @@ config:
   - recall@100
   - recall@200
   - recall@500
+  - ndcg@3
+  - ndcg@5
+  - ndcg@10
+  - ndcg@100
   pretrained_no_yamlconfig: false
   nb_iterations: 150000
   train_batch_size: 10
-  eval_batch_size: 64
+  eval_batch_size: 128
   index_retrieve_batch_size: 64
   record_frequency: 10000
   train_monitoring_freq: 500
@@ -20,8 +24,8 @@ config:
   max_length: 256
   fp16: true
   matching_type: splade
-  contrastive_weight: 0.05
-  infonce_temperature: 0.08
+  contrastive_weight: 0.01
+  infonce_temperature: 0.05
   monitoring_ckpt: MRR@10
   tokenizer_type: Luyu/co-condenser-marco
   top_k: 1000
@@ -47,6 +51,7 @@ config:
   out_dir: ??
   hf_training: true
   config.lr: 2.0e-05
+  training_loss: kldiv_contrastive_with_weights
 data:
   type: json
   TRAIN:
@@ -76,7 +81,7 @@ hf:
     logging_steps: 5000
     save_strategy: epoch
     dataloader_drop_last: true
-    num_train_epochs: 3
+    num_train_epochs: 5
     warmup_ratio: 0.01
     mse_margin: false
     weight_decay: 0
@@ -88,4 +93,4 @@ hf:
     distillation: false
     n_negatives: 16
     wandb_project_name: disco-conv-splade
-    wandb_run_name: disco_topiocqa_mistral_InfoNCE_005
+    wandb_run_name: disco_topiocqa_mistral
