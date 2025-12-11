@@ -1,5 +1,5 @@
 # Ignore experiment outputs and data
-EXP/x
+EXP/*
 DATA/
 
 # Ignore Python cache
