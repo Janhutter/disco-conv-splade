@@ -6,6 +6,7 @@ from transformers import AutoTokenizer, AutoModelForMaskedLM, AutoModel
 
 from ..tasks.amp import NullContextManager
 from ..utils.utils import generate_bow, clean_bow, normalize, pruning
+import os
 
 """
 we provide abstraction classes from which we can easily derive representation-based models with transformers like SPLADE
@@ -27,11 +28,14 @@ class TransformerRep(torch.nn.Module):
         model_class = AutoModel if output != "MLM" else AutoModelForMaskedLM
         self.transformer = model_class.from_pretrained(model_type_or_dir)
         self.tokenizer = AutoTokenizer.from_pretrained(model_type_or_dir)
+
         self.output = output
         self.fp16 = fp16
 
     def forward(self, **tokens):
-        with torch.cuda.amp.autocast() if self.fp16 else NullContextManager():
+        # use new torch.amp autocast API to avoid deprecation / potential issues
+        autocast_ctx = torch.amp.autocast("cuda") if (self.fp16 and torch.cuda.is_available()) else NullContextManager()
+        with autocast_ctx:
             # Utilisation d'un modèle standard
             out = self.transformer(**tokens)
             if self.output == "MLM":
@@ -88,7 +92,9 @@ class SiameseBase(torch.nn.Module, ABC):
         "d_kwargs" => contains all inputs for document encoding
         "q_kwargs" => contains all inputs for query encoding ([OPTIONAL], e.g. for indexing)
         """
-        with torch.cuda.amp.autocast() if self.fp16 else NullContextManager():
+        # use new torch.amp autocast API and guard on CUDA availability
+        autocast_ctx = torch.amp.autocast("cuda") if (self.fp16 and torch.cuda.is_available()) else NullContextManager()
+        with autocast_ctx:
             out = {}
             do_d, do_q = "d_kwargs" in kwargs, "q_kwargs" in kwargs
             if do_d:

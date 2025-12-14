@@ -32,10 +32,10 @@ def retrieve_evaluate(exp_dict: DictConfig):
 
     batch_size = config["index_retrieve_batch_size"]
     for data_dir in set(exp_dict["data"]["Q_COLLECTION_PATH"]):
-        q_collection = CollectionDatasetPreLoad(data_dir=data_dir, id_style="row_id") #, max_sample=32
+        q_collection = CollectionDatasetPreLoad(data_dir=data_dir, id_style="row_id") # , max_sample=32
         q_loader = CollectionDataLoader(dataset=q_collection, tokenizer_type=model_training_config["tokenizer_type"],
                                         max_length=model_training_config["max_length"], batch_size=batch_size,
-                                        shuffle=False, num_workers=1)
+                                        shuffle=False, num_workers=16, prefetch_factor=8)
 
         evaluator = SparseRetrieval(config=config, model=model, dataset_name=get_dataset_name(data_dir),
                                 compute_stats=True, dim_voc=model.output_dim, restore=restore)

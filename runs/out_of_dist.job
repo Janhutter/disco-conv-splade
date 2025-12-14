@@ -16,6 +16,10 @@ model=$3
 
 config=disco_${dataset}_${model}.yaml
 
+# index_dir=/scratch-shared/disco/DATA/${dataset}/${dataset}_index_self/
+
+
+# check if dataset is ikat23 or ikat24 to set out_dir accordingly
 if [ "$dataset" == "ikat23" ]; then
     index_dir=/scratch-shared/disco/DATA/ikat23/splade_index/splade_index/
 elif [ "$dataset" == "ikat24" ]; then
@@ -25,8 +29,10 @@ else
 fi
 
 out_dir=/scratch-shared/disco/disco_${capitalized_dataset}_${model}_out_${seed}/
+# ckpt_dir=/scratch-shared/disco/disco_TOPIOCQA_mistral/
 # ckpt_dir=/scratch-shared/disco/disco_TOPIOCQA_multi_1765204072/
 ckpt_dir=/scratch-shared/disco/disco_${capitalized_dataset}_${model}/
+
 
 export SPLADE_CONFIG_NAME=$config
 

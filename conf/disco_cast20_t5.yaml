@@ -92,4 +92,4 @@ hf:
     distillation: false
     n_negatives: 16
     wandb_project_name: disco-conv-splade
-    wandb_run_name: disco_cast20_mistral
+    wandb_run_name: disco_cast20_t5

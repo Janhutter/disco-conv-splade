@@ -35,7 +35,7 @@ config:
     - recall
     - ndcg@3
   retrieval_name:
-  - cast20
+  - ikat24
   regularizer:
     FLOPS:
       lambda_d: 0
@@ -48,24 +48,24 @@ config:
   checkpoint_dir: ??
   index_dir: ??
   out_dir: ??
-  hf_training: true
+  hf_training: false
   config.lr: 2.0e-05
-  training_loss: kldiv_contrastive
+  training_loss: kldiv_contrastive_with_weights
 data:
   type: json
   TRAIN:
     DATASET_PATH: ??
-    D_COLLECTION_PATH: /scratch-shared/disco/DATA/full_wiki_segments_topiocqa.tsv
-    Q_COLLECTION_PATH: /scratch-shared/disco/DATA/topiocqa_topics/queries_rowid_train_all.tsv
-    QREL_PATH: /scratch-shared/disco/DATA/topiocqa_topics/qrels_rowid_train.json
+    D_COLLECTION_PATH: /scratch-shared/disco/DATA/ikat23/passages.tsv
+    Q_COLLECTION_PATH: /scratch-shared/disco/DATA/ikat23/topiocqa_topics/queries_rowid_train_all.tsv
+    QREL_PATH: /scratch-shared/disco/DATA/ikat23/topiocqa_topics/qrel_rowid_train.json
     TOPK_mi: 10
     TOPK_ma: 950
-  COLLECTION_PATH: /scratch-shared/disco/DATA/cast20/passages.tsv
+  COLLECTION_PATH: /scratch-shared/disco/DATA/ikat23/passages.tsv
   Q_COLLECTION_PATH:
-  - /scratch-shared/disco/DATA/cast20/queries_rowid_dev_all.tsv
+  - /scratch-shared/disco/DATA/ikat24_rewrites/rewrites_mistral_test_last.tsv
   EVAL_QREL_PATH:
-  - /scratch-shared/disco/DATA/cast20/qrels_rowid_dev.json
-  flops_queries: /scratch-shared/disco/DATA/cast20/queries_rowid_dev_all.tsv
+  - /scratch-shared/disco/DATA/ikat24/qrel_rowid_dev.json
+  flops_queries: /scratch-shared/disco/DATA/ikat24_rewrites/rewrites_mistral_test_last.tsv
 init_dict:
   model_type_or_dir: naver/splade-cocondenser-ensembledistil
   model_type_or_dir_q: naver/splade-cocondenser-ensembledistil
@@ -84,7 +84,7 @@ hf:
     warmup_ratio: 0.01
     mse_margin: false
     weight_decay: 0
-    training_loss: kldiv_InfoNCE_with_weights # kldiv_contrastive_with_weights
+    training_loss: kldiv_contrastive_with_weights # kldiv_contrastive_with_weights
   model:
     dense: false
     shared_weights: false
@@ -92,4 +92,4 @@ hf:
     distillation: false
     n_negatives: 16
     wandb_project_name: disco-conv-splade
-    wandb_run_name: disco_cast20_mistral
+    wandb_run_name: disco_mistral_rewrites

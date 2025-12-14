@@ -1,4 +1,3 @@
-# just vanilla splade with no rewrites on TOPIOCQA
 config:
   lr: 2.0e-05
   seed: 123
@@ -9,10 +8,14 @@ config:
   - recall@100
   - recall@200
   - recall@500
+  - ndcg@3
+  - ndcg@5
+  - ndcg@10
+  - ndcg@100
   pretrained_no_yamlconfig: false
   nb_iterations: 150000
   train_batch_size: 10
-  eval_batch_size: 64
+  eval_batch_size: 128
   index_retrieve_batch_size: 64
   record_frequency: 10000
   train_monitoring_freq: 500
@@ -28,8 +31,10 @@ config:
   - - mrr_10
     - mrr_1000
     - recall
+    - ndcg
+    - ndcg@3
   retrieval_name:
-  - TOPIOCQA
+  - QRECC
   regularizer:
     FLOPS:
       lambda_d: 0
@@ -43,14 +48,22 @@ config:
   index_dir: ??
   out_dir: ??
   config.lr: 2.0e-05
+  training_loss: kldiv_contrastive_with_weights
 data:
   type: json
-  COLLECTION_PATH: DATA/full_wiki_segments_topiocqa.tsv
+  TRAIN:
+    DATASET_PATH: ??
+    D_COLLECTION_PATH: /scratch-shared/disco/DATA/qrecc/passages.tsv
+    Q_COLLECTION_PATH: /scratch-shared/disco/DATA/qrecc/queries_rowid_train_all.tsv
+    QREL_PATH: /scratch-shared/disco/DATA/qrecc/qrels_rowid_train.json
+    TOPK_mi: 10
+    TOPK_ma: 950
+  COLLECTION_PATH: /scratch-shared/disco/DATA/qrecc/passages.tsv
   Q_COLLECTION_PATH:
-  - DATA/topiocqa_topics/queries_rowid_dev_all.tsv
+  - /scratch-shared/disco/DATA/qrecc/queries_rowid_dev_all.tsv
   EVAL_QREL_PATH:
-  - DATA/topiocqa_topics/qrel_rowid_dev.json
-  flops_queries: DATA/topiocqa_topics/queries_rowid_dev_all.tsv
+  - /scratch-shared/disco/DATA/qrecc/qrels_rowid_dev.json
+  flops_queries: /scratch-shared/disco/DATA/qrecc/queries_rowid_dev_all.tsv
 init_dict:
   model_type_or_dir: naver/splade-cocondenser-ensembledistil
   model_type_or_dir_q: naver/splade-cocondenser-ensembledistil
@@ -58,11 +71,23 @@ init_dict:
   agg: max
   fp16: true
 hf:
+  training:
+    resume_from_checkpoint: false
+    ddp_find_unused_parameters: false
+    fp16: true
+    logging_steps: 5000
+    save_strategy: epoch
+    dataloader_drop_last: true
+    num_train_epochs: 5
+    warmup_ratio: 0.01
+    mse_margin: false
+    weight_decay: 0
   model:
     dense: false
     shared_weights: false
   data:
     distillation: false
     n_negatives: 16
+    wandb_log: True
     wandb_project_name: disco-conv-splade
-    wandb_run_name: disco_topiocqa_mistral_llama
+    wandb_run_name: disco_qrecc_splade_vanilla

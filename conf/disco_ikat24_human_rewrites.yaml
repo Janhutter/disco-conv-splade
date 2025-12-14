@@ -23,6 +23,8 @@ config:
   max_length: 256
   fp16: true
   matching_type: splade
+  contrastive_weight: 0.01
+  infonce_temperature: 0.05
   monitoring_ckpt: MRR@10
   tokenizer_type: Luyu/co-condenser-marco
   top_k: 1000
@@ -31,8 +33,9 @@ config:
   - - mrr_10
     - mrr_1000
     - recall
+    - ndcg@3
   retrieval_name:
-  - TOPIOCQA
+  - ikat24
   regularizer:
     FLOPS:
       lambda_d: 0
@@ -45,24 +48,24 @@ config:
   checkpoint_dir: ??
   index_dir: ??
   out_dir: ??
-  hf_training: true
+  hf_training: false
   config.lr: 2.0e-05
-  training_loss: kldiv_contrastive
+  training_loss: kldiv_contrastive_with_weights
 data:
   type: json
   TRAIN:
     DATASET_PATH: ??
-    D_COLLECTION_PATH: DATA/qrecc/passages.tsv
-    Q_COLLECTION_PATH: DATA/qrecc/queries_rowid_train_all.tsv
-    QREL_PATH: DATA/qrecc/qrels_rowid_train.json
+    D_COLLECTION_PATH: /scratch-shared/disco/DATA/ikat23/passages.tsv
+    Q_COLLECTION_PATH: /scratch-shared/disco/DATA/ikat23/topiocqa_topics/queries_rowid_train_all.tsv
+    QREL_PATH: /scratch-shared/disco/DATA/ikat23/topiocqa_topics/qrel_rowid_train.json
     TOPK_mi: 10
     TOPK_ma: 950
-  COLLECTION_PATH: DATA/qrecc/passages.tsv
+  COLLECTION_PATH: /scratch-shared/disco/DATA/ikat23/passages.tsv
   Q_COLLECTION_PATH:
-  - DATA/qrecc/queries_row_id_dev_all.tsv
+  - /scratch-shared/disco/DATA/ikat24/human_rewrites_dev.tsv
   EVAL_QREL_PATH:
-  - DATA/qrecc/qrels_rowid_dev.json
-  flops_queries: DATA/qrecc/queries_row_id_dev_all.tsv
+  - /scratch-shared/disco/DATA/ikat24/qrel_rowid_dev.json
+  flops_queries: /scratch-shared/disco/DATA/ikat24/human_rewrites_dev.tsv
 init_dict:
   model_type_or_dir: naver/splade-cocondenser-ensembledistil
   model_type_or_dir_q: naver/splade-cocondenser-ensembledistil
@@ -81,12 +84,12 @@ hf:
     warmup_ratio: 0.01
     mse_margin: false
     weight_decay: 0
+    training_loss: kldiv_contrastive_with_weights # kldiv_contrastive_with_weights
   model:
     dense: false
     shared_weights: false
   data:
     distillation: false
     n_negatives: 16
-    wandb_log: True
     wandb_project_name: disco-conv-splade
-    wandb_run_name: disco_qrecc_mistral
+    wandb_run_name: disco_mistral

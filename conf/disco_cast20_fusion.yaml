@@ -62,10 +62,10 @@ data:
     TOPK_ma: 950
   COLLECTION_PATH: /scratch-shared/disco/DATA/cast20/passages.tsv
   Q_COLLECTION_PATH:
-  - /scratch-shared/disco/DATA/cast20/queries_rowid_dev_all.tsv
+  - /scratch-shared/disco/DATA/cast20_rewrites/rewrites_mistral_test_last.tsv
   EVAL_QREL_PATH:
   - /scratch-shared/disco/DATA/cast20/qrels_rowid_dev.json
-  flops_queries: /scratch-shared/disco/DATA/cast20/queries_rowid_dev_all.tsv
+  flops_queries: /scratch-shared/disco/DATA/cast20_rewrites/rewrites_mistral_test_last.tsv
 init_dict:
   model_type_or_dir: naver/splade-cocondenser-ensembledistil
   model_type_or_dir_q: naver/splade-cocondenser-ensembledistil

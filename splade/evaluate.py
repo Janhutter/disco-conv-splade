@@ -39,22 +39,60 @@ def evaluate(exp_dict: DictConfig):
             print(eval_metrics, qrel_file_path)
             for metric in eval_metrics:
                 qrel_fp=qrel_file_path
-                res.update(load_and_evaluate(qrel_file_path=qrel_fp,
-                                             run_file_path=os.path.join(out_dir, dataset_name, 'run.json'),
-                                             metric=metric,
-                                             agg=True))
-                res_full.update(load_and_evaluate(qrel_file_path=qrel_fp,
-                                             run_file_path=os.path.join(out_dir, dataset_name, 'run.json'),
-                                             metric=metric,agg=False),)
+
+                try:
+                    res.update(load_and_evaluate(qrel_file_path=qrel_fp,
+                                                run_file_path=os.path.join(out_dir, dataset_name, 'run.json'),
+                                                metric=metric,
+                                                agg=True))
+                    res_full.update(load_and_evaluate(qrel_file_path=qrel_fp,
+                                                run_file_path=os.path.join(out_dir, dataset_name, 'run.json'),
+                                                metric=metric,agg=False),)
+                except Exception as e:
+                    # try to find the dataset name folder in out_dir
+                    # check the folders in out_dir
+                    print(f"Error evaluating {dataset_name} with metric {metric}: {e}")
+                    dirs = os.listdir(out_dir)
+                    matched_dir = None
+                    for d in dirs:
+                        if dataset_name.lower() in d.lower() or d.lower() in dataset_name.lower():
+                            matched_dir = d
+                            break
+                    if matched_dir is not None:
+                        print(f"Found matching directory: {matched_dir}, trying again.")
+                        res.update(load_and_evaluate(qrel_file_path=qrel_fp,
+                                                    run_file_path=os.path.join(out_dir, matched_dir, 'run.json'),
+                                                    metric=metric,
+                                                    agg=True))
+                        res_full.update(load_and_evaluate(qrel_file_path=qrel_fp,
+                                                    run_file_path=os.path.join(out_dir, matched_dir, 'run.json'),
+                                                    metric=metric,agg=False),)
+                    else:
+                        print(f"No matching directory found for dataset {dataset_name}. Skipping.")
+
+                
             if dataset_name in res_all_datasets.keys():
                 res_all_datasets[dataset_name].update(res)
                 res_full_all_datasets[dataset_name].update(res_full)
             else:
                 res_all_datasets[dataset_name] = res
                 res_full_all_datasets[dataset_name] = res_full
-            out_fp = os.path.join(out_dir, dataset_name, "perf.json")
-            json.dump(res, open(out_fp,"a"))
-            wandb.log({f"{dataset_name}/{k}": v for k, v in res.items()})
+
+            try:
+                out_fp = os.path.join(out_dir, dataset_name, "perf.json")
+                json.dump(res, open(out_fp,"a"))
+                wandb.log({f"{dataset_name}/{k}": v for k, v in res.items()})
+            except Exception as e:
+                dirs = os.listdir(out_dir)
+                matched_dir = None
+                for d in dirs:
+                    if dataset_name.lower() in d.lower() or d.lower() in dataset_name.lower():
+                        matched_dir = d
+                        break
+                if matched_dir is not None:
+                    out_fp = os.path.join(out_dir, matched_dir, "perf.json")
+                    json.dump(res, open(out_fp,"a"))
+                    wandb.log({f"{dataset_name}/{k}": v for k, v in res.items()})
 
     out_all_fp= os.path.join(out_dir, "perf_all_datasets_solo.json")
     json.dump(res_all_datasets, open(out_all_fp, "a"))

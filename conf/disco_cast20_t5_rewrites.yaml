@@ -48,7 +48,7 @@ config:
   checkpoint_dir: ??
   index_dir: ??
   out_dir: ??
-  hf_training: true
+  hf_training: false
   config.lr: 2.0e-05
   training_loss: kldiv_contrastive
 data:
@@ -62,10 +62,10 @@ data:
     TOPK_ma: 950
   COLLECTION_PATH: /scratch-shared/disco/DATA/cast20/passages.tsv
   Q_COLLECTION_PATH:
-  - /scratch-shared/disco/DATA/cast20/queries_rowid_dev_all.tsv
+  - /scratch-shared/disco/DATA/cast20/t5_rewrites_dev.tsv
   EVAL_QREL_PATH:
   - /scratch-shared/disco/DATA/cast20/qrels_rowid_dev.json
-  flops_queries: /scratch-shared/disco/DATA/cast20/queries_rowid_dev_all.tsv
+  flops_queries: /scratch-shared/disco/DATA/cast20/t5_rewrites_dev.tsv
 init_dict:
   model_type_or_dir: naver/splade-cocondenser-ensembledistil
   model_type_or_dir_q: naver/splade-cocondenser-ensembledistil
@@ -92,4 +92,4 @@ hf:
     distillation: false
     n_negatives: 16
     wandb_project_name: disco-conv-splade
-    wandb_run_name: disco_cast20_mistral
+    wandb_run_name: disco_cast20_t5

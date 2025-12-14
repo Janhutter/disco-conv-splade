@@ -1,4 +1,5 @@
 config:
+  wandb_log: False
   lr: 2.0e-05
   seed: 123
   gradient_accumulation_steps: 1
@@ -35,7 +36,7 @@ config:
     - recall
     - ndcg@3
   retrieval_name:
-  - cast20
+  - TOPIOCQA
   regularizer:
     FLOPS:
       lambda_d: 0
@@ -51,21 +52,22 @@ config:
   hf_training: true
   config.lr: 2.0e-05
   training_loss: kldiv_contrastive
+  huggingface_weights: false
 data:
   type: json
   TRAIN:
     DATASET_PATH: ??
-    D_COLLECTION_PATH: /scratch-shared/disco/DATA/full_wiki_segments_topiocqa.tsv
-    Q_COLLECTION_PATH: /scratch-shared/disco/DATA/topiocqa_topics/queries_rowid_train_all.tsv
-    QREL_PATH: /scratch-shared/disco/DATA/topiocqa_topics/qrels_rowid_train.json
+    D_COLLECTION_PATH: DATA/full_wiki_segments_topiocqa.tsv
+    Q_COLLECTION_PATH: DATA/topiocqa_topics/queries_rowid_train_all.tsv
+    QREL_PATH: DATA/topiocqa_topics/qrel_rowid_train.json
     TOPK_mi: 10
     TOPK_ma: 950
-  COLLECTION_PATH: /scratch-shared/disco/DATA/cast20/passages.tsv
+  COLLECTION_PATH: DATA/full_wiki_segments_topiocqa.tsv
   Q_COLLECTION_PATH:
-  - /scratch-shared/disco/DATA/cast20/queries_rowid_dev_all.tsv
+  - DATA/topiocqa_topics/queries_rowid_dev_all.tsv
   EVAL_QREL_PATH:
-  - /scratch-shared/disco/DATA/cast20/qrels_rowid_dev.json
-  flops_queries: /scratch-shared/disco/DATA/cast20/queries_rowid_dev_all.tsv
+  - DATA/topiocqa_topics/qrel_rowid_dev.json
+  flops_queries: DATA/topiocqa_topics/queries_rowid_dev_all.tsv
 init_dict:
   model_type_or_dir: naver/splade-cocondenser-ensembledistil
   model_type_or_dir_q: naver/splade-cocondenser-ensembledistil
@@ -92,4 +94,4 @@ hf:
     distillation: false
     n_negatives: 16
     wandb_project_name: disco-conv-splade
-    wandb_run_name: disco_cast20_mistral
+    wandb_run_name: disco_topiocqa_mistral

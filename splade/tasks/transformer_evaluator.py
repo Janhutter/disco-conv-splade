@@ -18,15 +18,32 @@ from ..utils.utils import makedir, to_list
 
 
 class SparseIndexing(Evaluator):
-    """sparse indexing
+    """Sparse indexing.
+
+    When used in a distributed setting (e.g. with ``torchrun``), pass the
+    global ``rank`` so that each process writes its own shard under
+    ``index_dir/rank{rank}``. A separate merge step can then combine the
+    shards into a single index.
     """
 
-    def __init__(self, model, config, compute_stats=False, dim_voc=None, is_query=False, force_new=True,**kwargs):
+    def __init__(self, model, config, compute_stats=False, dim_voc=None, is_query=False, force_new=True, rank: int = 0, **kwargs):
         super().__init__(model, config, **kwargs)
+        self.rank = int(rank)
         self.index_dir = config["index_dir"] if config is not None else None
-        self.sparse_index = IndexDictOfArray(self.index_dir, dim_voc=dim_voc, force_new=force_new)
+        shard_dir = os.path.join(self.index_dir, f"rank{self.rank}") if self.index_dir is not None else None
+        # During indexing we want a streaming on-disk index; ``force_new=True``
+        # creates an empty HDF5 file and keeps only small in‑memory buffers
+        # that we will periodically flush.
+        self.sparse_index = IndexDictOfArray(shard_dir, dim_voc=dim_voc, force_new=force_new)
         self.compute_stats = compute_stats
         self.is_query = is_query
+        # How many documents to index before flushing posting buffers to disk.
+        # This keeps RAM bounded for large collections. Can be overridden from
+        # the Hydra config via ``index_flush_interval`` if desired.
+        try:
+            self.index_flush_interval = int(config.get("index_flush_interval", 500000))
+        except Exception:
+            self.index_flush_interval = 500000
         if self.compute_stats:
             self.l0 = L0()
 
@@ -35,35 +52,81 @@ class SparseIndexing(Evaluator):
         if self.compute_stats:
             stats = defaultdict(float)
         count = 0
+        docs_since_flush = 0
         with torch.no_grad():
             for t, batch in enumerate(tqdm(collection_loader)):
-                inputs = {k: v.to(self.device) for k, v in batch.items() if k not in {"id"}}
+                # move only needed tensors to device and keep ids on CPU
+                inputs = {}
+                for k, v in batch.items():
+                    if k == "id":
+                        continue
+                    inputs[k] = v.to(self.device, non_blocking=True)
+
+                # forward pass
                 if self.is_query:
                     batch_documents = self.model(q_kwargs=inputs)["q_rep"]
                 else:
                     batch_documents = self.model(d_kwargs=inputs)["d_rep"]
+
+                # compute stats before any conversion
                 if self.compute_stats:
                     stats["L0_d"] += self.l0(batch_documents).item()
-                row, col = torch.nonzero(batch_documents, as_tuple=True)
-                data = batch_documents[row, col]
-                row = row + count
+
+                # work on CPU tensors only to free GPU memory early
+                batch_documents_cpu = batch_documents.detach().cpu()
+
+                # get non‑zero coordinates and values (sparse pattern unchanged)
+                row, col = torch.nonzero(batch_documents_cpu, as_tuple=True)
+                data = batch_documents_cpu[row, col]
+
+                # shift row indices according to global document count
+                if row.numel() > 0:
+                    row = row + count
+
+                # handle doc ids without keeping them as tensors
                 batch_ids = to_list(batch["id"])
                 if id_dict:
                     batch_ids = [id_dict[x] for x in batch_ids]
-                count += len(batch_ids)
+
+                n_batch_docs = len(batch_ids)
+                count += n_batch_docs
                 doc_ids.extend(batch_ids)
-                self.sparse_index.add_batch_document(row.cpu().numpy(), col.cpu().numpy(), data.cpu().numpy(),
-                                                     n_docs=len(batch_ids))
+
+                # convert once to minimal numpy dtypes
+                if row.numel() > 0:
+                    self.sparse_index.add_batch_document(
+                        row.numpy().astype(np.int32, copy=False),
+                        col.numpy().astype(np.int32, copy=False),
+                        data.numpy().astype(np.float32, copy=False),
+                        n_docs=n_batch_docs,
+                    )
+
+                # Periodically flush buffered postings to disk so that we do
+                # not keep the entire inverted index in RAM.
+                docs_since_flush += n_batch_docs
+                if (
+                    self.index_dir is not None
+                    and self.index_flush_interval > 0
+                    and docs_since_flush >= self.index_flush_interval
+                ):
+                    # ``_flush_buffers`` is a lightweight append‑only write;
+                    # the final ``save()`` call below will also compute and
+                    # write index statistics once at the end.
+                    self.sparse_index._flush_buffers()
+                    docs_since_flush = 0
         if self.compute_stats:
             stats = {key: value / len(collection_loader) for key, value in stats.items()}
         if self.index_dir is not None:
+            # Save this rank's shard under its own subdirectory and doc id file.
             self.sparse_index.save()
-            pickle.dump(doc_ids, open(os.path.join(self.index_dir, "doc_ids.pkl"), "wb"))
-            print("done iterating over the corpus...")
-            print("index contains {} posting lists".format(len(self.sparse_index)))
-            print("index contains {} documents".format(len(doc_ids)))
+            shard_doc_ids_path = os.path.join(self.index_dir, f"doc_ids_rank{self.rank}.pkl")
+            pickle.dump(doc_ids, open(shard_doc_ids_path, "wb"))
+            print(f"[rank {self.rank}] done iterating over the corpus...")
+            print(f"[rank {self.rank}] index contains {len(self.sparse_index)} posting lists")
+            print(f"[rank {self.rank}] index contains {len(doc_ids)} documents")
             if self.compute_stats:
-                with open(os.path.join(self.index_dir, "index_stats.json"), "w") as handler:
+                shard_stats_path = os.path.join(self.index_dir, f"index_stats_rank{self.rank}.json")
+                with open(shard_stats_path, "w") as handler:
                     json.dump(stats, handler)
         else:
             # if no index_dir, we do not write the index to disk but return it
@@ -112,6 +175,32 @@ class SparseRetrieval(Evaluator):
         # unused documents => this should be tuned, currently it is set to 0
         return filtered_indexes, -scores[filtered_indexes]
 
+    @staticmethod
+    def score_float_numpy(inverted_index_ids, inverted_index_floats,
+                          indexes_to_retrieve, query_values,
+                          threshold, size_collection):
+        """Pure numpy scoring used as a safer fallback to numba.
+
+        This avoids potential native memory issues while we debug
+        low-level crashes such as ``munmap_chunk(): invalid pointer``.
+        """
+        scores = np.zeros(size_collection, dtype=np.float32)
+        for local_idx, q_val in zip(indexes_to_retrieve, query_values):
+            key = int(local_idx)
+            # handle missing posting lists robustly
+            doc_ids = inverted_index_ids.get(key, np.empty(0, dtype=np.int32))
+            doc_vals = inverted_index_floats.get(key, np.empty(0, dtype=np.float32))
+            if len(doc_ids) == 0:
+                continue
+            # safety check: shapes must match
+            if len(doc_ids) != len(doc_vals):
+                raise RuntimeError(f"Mismatched posting list lengths for key {key}: "
+                                   f"ids={len(doc_ids)}, vals={len(doc_vals)}")
+            scores[doc_ids] += q_val * doc_vals
+
+        filtered_indexes = np.where(scores > threshold)[0]
+        return filtered_indexes, -scores[filtered_indexes]
+
     def __init__(self, model, config, dim_voc, dataset_name=None, index_d=None, compute_stats=False, is_beir=False,
                  **kwargs):
         super().__init__(model, config, **kwargs)
@@ -135,6 +224,13 @@ class SparseRetrieval(Evaluator):
             self.numba_index_doc_ids[key] = value
         for key, value in self.sparse_index.index_doc_value.items():
             self.numba_index_doc_values[key] = value
+        # ensure nb_docs is consistent with loaded doc_ids
+        try:
+            n_docs = len(self.doc_ids)
+            if hasattr(self.sparse_index, "n"):
+                self.sparse_index.n = n_docs
+        except Exception:
+            pass
         self.out_dir = os.path.join(config["out_dir"], dataset_name) if (dataset_name is not None and not is_beir) \
             else config["out_dir"]
         self.doc_stats = index_d["stats"] if (index_d is not None and compute_stats) else None
@@ -183,12 +279,15 @@ class SparseRetrieval(Evaluator):
                 size_collection=self.sparse_index.nb_docs()
 
                 retrieval_start=time.time()
-                filtered_indexes, scores = self.numba_score_float(self.numba_index_doc_ids,
-                                                                  self.numba_index_doc_values,
-                                                                  col_numba,
-                                                                  values_numba,
-                                                                  threshold=threshold,
-                                                                  size_collection=size_collection)
+                # Use safe numpy implementation to avoid native memory errors
+                filtered_indexes, scores = self.score_float_numpy(
+                    self.numba_index_doc_ids,
+                    self.numba_index_doc_values,
+                    col_numba,
+                    values_numba,
+                    threshold=threshold,
+                    size_collection=size_collection,
+                )
                 retrieval_end = time.time()
 
                 latency_enc.append(encoding_end-encoding_start)

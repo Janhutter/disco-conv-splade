@@ -31,9 +31,10 @@ config:
   top_k: 1000
   threshold: 0
   eval_metric:
-  - - mrr_10
-    - mrr_1000
-    - recall
+  - mrr_10
+  - mrr_1000
+  - recall
+  - ndcg
   retrieval_name:
   - TOPIOCQA
   regularizer:

@@ -9,6 +9,10 @@ config:
   - recall@100
   - recall@200
   - recall@500
+  - ndcg@3
+  - ndcg@5
+  - ndcg@10
+  - ndcg@100
   pretrained_no_yamlconfig: false
   nb_iterations: 150000
   train_batch_size: 10
@@ -28,6 +32,7 @@ config:
   - - mrr_10
     - mrr_1000
     - recall
+    - ndcg@3
   retrieval_name:
   - TOPIOCQA
   regularizer:

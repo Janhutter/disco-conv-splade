@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#SBATCH --partition=gpu_a100
-#SBATCH --gpus=1
+#SBATCH --partition=gpu_h100
+#SBATCH --gpus=2
 #SBATCH --job-name=Train
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=9
@@ -11,9 +11,9 @@
 
 port=$(shuf -i 29500-29599 -n 1)
 
-config=disco_topiocqa_mistral.yaml
-runpath=DATA/topiocqa_distil/distil_run_top_mistral.json
-ckpt_dir=EXP/checkpoint_exp/disco_TOPIOCQA_mistral_noce/
+config=disco_ikat23_mistral_indomain.yaml
+runpath=/scratch-shared/disco/DATA/ikat23/distil_run_top_mistral.json
+ckpt_dir=/scratch-shared/disco/disco_IKAT23_mistral_indomain/
 
 torchrun --nproc_per_node 1 --master_port $port -m splade.hf_train \
     --config-name=$config  \
