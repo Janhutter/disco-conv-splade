@@ -32,6 +32,13 @@ python setup_script/parse_cast.py
 python setup_script/parse_ikat23.py
 ```
 
+### Generating rewrites
+
+We provide scripts to generate query rewrites using T5 and Mistral models.
+
+```bash
+python setup_script/generate_rewrites.py
+```
 
 ## 2. Indexing
 
