@@ -86,7 +86,6 @@ bash eval.sh
 Where this bash file specificies the specific run.
 
 ```bash
-#!/bin/bash
 
 
 seeds=(123)
@@ -103,15 +102,6 @@ done
 `eval.job` contains the SLURM job configuration for evaluation.
 
 ```bash
-#!/bin/bash
-
-#SBATCH --partition=gpu_h100
-#SBATCH --gpus=2
-#SBATCH --job-name=eval
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=9
-#SBATCH --time=8:00:00
-#SBATCH --output=%A.out
 
 
 seed=$1
@@ -160,7 +150,7 @@ For these runs, and the config files, the following naming scheme is utilized:
 | `fusion`          | The configuration used to obtain DiSCo fusion.                              |
 
 
-Do not that is necessary to set `hf_training: false` in the config files for query rewrite methods, as it utilizes the pretrained SPLADE model without any further training.
+Do note that is necessary to set `hf_training: false` in the config files for query rewrite methods, as it utilizes the pretrained SPLADE model without any further training.
 
 ### multi-teacher distillation
 To perform multi-teacher distillation, you would need to create a distillation run file that combines the outputs from multiple teachers. This can be done by merging the run files obtained from evaluating each teacher on the training set with the following script:
@@ -201,5 +191,24 @@ hf:
 ### 6. Lambda regularization
 To modify the lambda regularization parameter used in SPLADE, you can change the following parameter in the config file:
 ```yaml
-# stan insert here
+config:
+  regularizer:
+    FLOPS:
+      lambda_d: 0.0005
+      targeted_rep: rep
+      reg: FLOPS
+    L1:
+      lambda_q: 0.001
+      targeted_rep: rep
+      reg: L1
 ```
+By changing the values of `lambda_d` and `lambda_q`, you can adjust the regularization strength for document and query representations, respectively.
+
+We utilized the following lambda values in our experiments:
+| Reg. Setting     | λ_d        | λ_q        |
+|------------------|------------|------------|
+| DiSCo            | 0          | 0          |
+| Splade Setting   | 5 × 10^-4  | 1 × 10^-3  |
+| Higher           | 1 × 10^-3  | 5 × 10^-3  |
+| High             | 1 × 10^-2  | 5 × 10^-2  |
+| Highest          | 5 × 10^-2  | 1 × 10^-1  |
