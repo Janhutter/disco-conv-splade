@@ -179,9 +179,11 @@ class IndexDictOfArray:
         # trigger ``_flush_buffers``.
 
     def __len__(self):
+        """Return the number of vocabulary dimensions in the index."""
         return len(self.index_doc_id)
 
     def nb_docs(self):
+        """Return the total number of documents in the index."""
         return self.n
 
     def save(self, dim=None):

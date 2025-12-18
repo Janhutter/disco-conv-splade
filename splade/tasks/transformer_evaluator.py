@@ -48,6 +48,13 @@ class SparseIndexing(Evaluator):
             self.l0 = L0()
 
     def index(self, collection_loader, id_dict=None):
+        """
+        Adds documents to the sparse index after embedding using the embeddings.
+        
+        Attributes:
+            collection_loader (CollectionDataLoader): Loads batches of documents
+            id_dict (dict): If provided, translates ids to new set of ids.
+        """
         doc_ids = []
         if self.compute_stats:
             stats = defaultdict(float)
@@ -303,7 +310,7 @@ class SparseRetrieval(Evaluator):
         
         if self.compute_stats:
             stats = {key: value / len(q_loader) for key, value in stats.items()}
-        if self.compute_stats:
+
             with open(os.path.join(self.out_dir, "stats",
                                    "q_stats{}.json".format("_iter_{}".format(name) if name is not None else "")),
                       "w") as handler:

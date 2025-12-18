@@ -1,5 +1,4 @@
 config:
-  wandb_log: True
   lr: 2.0e-05
   seed: 123
   gradient_accumulation_steps: 1
@@ -20,8 +19,6 @@ config:
   max_length: 256
   fp16: true
   matching_type: splade
-  contrastive_weight: 0.05
-  infonce_temperature: 0.08
   monitoring_ckpt: MRR@10
   tokenizer_type: Luyu/co-condenser-marco
   top_k: 1000
@@ -30,7 +27,6 @@ config:
   - - mrr_10
     - mrr_1000
     - recall
-    - ndcg@3
   retrieval_name:
   - TOPIOCQA
   regularizer:
@@ -42,26 +38,18 @@ config:
       lambda_q: 0
       targeted_rep: rep
       reg: L1
-  checkpoint_dir: ??
-  index_dir: ??
-  out_dir: ??
-  hf_training: true
+  checkpoint_dir: EXP/checkpoint_exp/disco_TOPIOCQA_mistral_rewrites/
+  index_dir: DATA/topiocqa_index_self/
+  out_dir: EXP/checkpoint_exp/disco_TOPIOCQA_mistral_rewrites_out_123/
   config.lr: 2.0e-05
 data:
   type: json
-  TRAIN:
-    DATASET_PATH: ??
-    D_COLLECTION_PATH: DATA/full_wiki_segments_topiocqa.tsv
-    Q_COLLECTION_PATH: DATA/topiocqa_topics/queries_rowid_train_all.tsv
-    QREL_PATH: DATA/topiocqa_topics/qrel_rowid_train.json
-    TOPK_mi: 10
-    TOPK_ma: 950
   COLLECTION_PATH: DATA/full_wiki_segments_topiocqa.tsv
   Q_COLLECTION_PATH:
-  - DATA/topiocqa_topics/queries_rowid_dev_all.tsv
+  - DATA/topiocqa_rewrites/rewrites_mistral_test_last.tsv
   EVAL_QREL_PATH:
   - DATA/topiocqa_topics/qrel_rowid_dev.json
-  flops_queries: DATA/topiocqa_topics/queries_rowid_dev_all.tsv
+  flops_queries: DATA/topiocqa_topics/rewrites_mistral_test_last.tsv
 init_dict:
   model_type_or_dir: naver/splade-cocondenser-ensembledistil
   model_type_or_dir_q: naver/splade-cocondenser-ensembledistil
@@ -69,18 +57,6 @@ init_dict:
   agg: max
   fp16: true
 hf:
-  training:
-    resume_from_checkpoint: false
-    ddp_find_unused_parameters: false
-    fp16: true
-    logging_steps: 5000
-    save_strategy: epoch
-    dataloader_drop_last: true
-    num_train_epochs: 3
-    warmup_ratio: 0.01
-    mse_margin: false
-    weight_decay: 0
-    training_loss: kldiv_InfoNCE_with_weights # kldiv_contrastive_with_weights
   model:
     dense: false
     shared_weights: false
@@ -88,4 +64,4 @@ hf:
     distillation: false
     n_negatives: 16
     wandb_project_name: disco-conv-splade
-    wandb_run_name: disco_topiocqa_mistral_InfoNCE_005
+    wandb_run_name: disco_topiocqa_mistral_llama

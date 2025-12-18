@@ -1,5 +1,5 @@
 # Ignore experiment outputs and data
-EXP/
+EXP/*
 DATA/
 
 # Ignore Python cache
@@ -14,3 +14,6 @@ outputs/
 *.out
 
 wandb/
+
+test_shards_sparse/
+model/
