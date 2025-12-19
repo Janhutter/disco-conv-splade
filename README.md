@@ -198,7 +198,7 @@ hf:
     n_negatives: 16
 ```
 
-### 6. Lambda regularization
+## 6. Lambda regularization
 To modify the lambda regularization parameter used in SPLADE, you can change the following parameter in the config file:
 ```yaml
 config:
