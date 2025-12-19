@@ -8,6 +8,6 @@
 #SBATCH --time=4:00:00
 #SBATCH --output=%A.out
 
-python setup_script/generate_rewrites.py
+python setup_script/upload_to_hf.py
 # wget -O /scratch-shared/disco/DATA/passages.zip https://zenodo.org/records/5115890/files/passages.zip?download=1
 # unzip /scratch-shared/disco/DATA/passages.zip 

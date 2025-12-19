@@ -40,6 +40,9 @@ We provide scripts to generate query rewrites using T5 and Mistral models.
 python setup_script/generate_rewrites.py
 ```
 
+### Huggingface 🤗
+Our preprocessed datasets, distillation files, and rewritten queries, that were not available from the original authors, have been uploaded to Huggingface for easier access and future work. Please check it out at: https://huggingface.co/collections/JanHutter/conversational-search
+
 ## 2. Indexing
 
 The index can be created with the provided SPLADE configuration files. This is an example of indexing the TopiOCQA collection with SPLADE.
@@ -216,6 +219,6 @@ We utilized the following lambda values in our experiments:
 |------------------|------------|------------|
 | DiSCo            | 0          | 0          |
 | Splade Setting   | 5 × 10^-4  | 1 × 10^-3  |
-| Higher           | 1 × 10^-3  | 5 × 10^-3  |
-| High             | 1 × 10^-2  | 5 × 10^-2  |
+| High           | 1 × 10^-3  | 5 × 10^-3  |
+| Higher             | 1 × 10^-2  | 5 × 10^-2  |
 | Highest          | 5 × 10^-2  | 1 × 10^-1  |

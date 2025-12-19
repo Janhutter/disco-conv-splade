@@ -273,10 +273,88 @@ if __name__ == "__main__":
         private=False,
     )
 
+    # upload_split(
+    #     file_path="/scratch-shared/disco/DATA/full_wiki_segments_topiocqa.tsv",
+    #     split="train",
+    #     repo_id="JanHutter/topiocqa-collection",
+    #     private=False,
+    # )
+
     upload_split(
-        file_path="/scratch-shared/disco/DATA/full_wiki_segments_topiocqa.tsv",
-        split="train",
-        repo_id="JanHutter/topiocqa-collection",
+        file_path='/scratch-shared/disco/DATA/ikat23/human_rewrites_dev.tsv ',
+        split='test',
+        repo_id='JanHutter/ikat23-human-rewrites-test',
         private=False,
     )
-
+    upload_split(
+        file_path='/scratch-shared/disco/DATA/ikat23/human_rewrites_train.tsv ',
+        split='train',
+        repo_id='JanHutter/ikat23-human-rewrites-train',
+        private=False,
+    )
+    upload_split(
+        file_path='/scratch-shared/disco/DATA/ikat23/qrel_rowid_dev.json ',
+        split='test',
+        repo_id='JanHutter/ikat23-qrels',
+        private=False,
+    )
+    upload_split(
+        file_path='/scratch-shared/disco/DATA/ikat23/qrel_rowid_train.json ',
+        split='train',
+        repo_id='JanHutter/ikat23-qrels',
+        private=False,
+    )
+    upload_split(
+        file_path='/scratch-shared/disco/DATA/ikat23/queries_rowid_dev_all.json ',
+        split='test',
+        repo_id='JanHutter/ikat23-queries-all',
+        private=False,
+    )
+    upload_split(
+        file_path='/scratch-shared/disco/DATA/ikat23/queries_rowid_train_all.json ',
+        split='train',
+        repo_id='JanHutter/ikat23-queries-all',
+        private=False,
+    )
+    upload_split(
+        file_path='/scratch-shared/disco/DATA/ikat23_rewrites/rewrites_mistral_test_last.tsv',
+        split='test',
+        repo_id='JanHutter/ikat23-mistral-rewrites-last',
+        private=False,
+    )
+    upload_split(
+        file_path='/scratch-shared/disco/DATA/ikat23_rewrites/rewrites_mistral_train_last.tsv',
+        split='train',
+        repo_id='JanHutter/ikat23-mistral-rewrites-last',
+        private=False,
+    )
+    upload_split(
+        file_path='/scratch-shared/disco/DATA/ikat23_rewrites/rewrites_t5_test_last.tsv',
+        split='test',
+        repo_id='JanHutter/ikat23-t5-rewrites-last',
+        private=False,
+    )
+    upload_split(
+        file_path='/scratch-shared/disco/DATA/ikat24/human_rewrites_dev.tsv',
+        split='test',
+        repo_id='JanHutter/ikat24-human-rewrites-test',
+        private=False,
+    )
+    upload_split(
+        file_path='/scratch-shared/disco/DATA/ikat24/queryies_rowid_dev_all.json',
+        split='test',
+        repo_id='JanHutter/ikat24-queries-all',
+        private=False,
+    )
+    upload_split(
+        file_path='/scratch-shared/disco/DATA/ikat24/rewrites_t5_test_last.tsv',
+        split='test',
+        repo_id='JanHutter/ikat24-t5-rewrites-last',
+        private=False,
+    )
+    upload_split(
+        file_path='/scratch-shared/disco/DATA/ikat24/rewrites_mistral_test_last.tsv',
+        split='test',
+        repo_id='JanHutter/ikat24-mistral-rewrites-last',
+        private=False,
+    )
