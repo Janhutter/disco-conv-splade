@@ -39,7 +39,7 @@ python setup_script/generate_rewrites.py
 ```
 
 ### Huggingface 🤗
-Our preprocessed datasets, distillation files, and rewritten queries, that were not available from the original authors, have been uploaded to Huggingface for easier access and future work. Please check it out at: https://huggingface.co/collections/JanHutter/conversational-search
+Our preprocessed datasets, distillation files, and rewritten queries, that were not available from the original authors, have been uploaded to Huggingface for easier access and future work. Please check it out at: Anonymized
 
 ## 2. Indexing
 
