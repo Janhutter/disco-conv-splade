@@ -1,4 +1,4 @@
-# Improving the Efficiency and Effectiveness of Knowledge Distillation for Conversational Searc
+# Improving the Efficiency and Effectiveness of Knowledge Distillation for Conversational Search
 
 This repository contains the code and resources for our study of Efficiency and Effectiveness of Knowledge Distillation for Conversational Search
 ## 1. Installation and Dataset Download
