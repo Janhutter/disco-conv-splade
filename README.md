@@ -1,6 +1,6 @@
-# A Systematic Reproducibility Study of DiSCo for Conversational Search
+# Improving the Efficiency and Effectiveness of Knowledge Distillation for Conversational Searc
 
-This repository contains the code and resources for our reproducibility study of DiSCo for Conversational Search by Lupart et al.
+This repository contains the code and resources for our study of Efficiency and Effectiveness of Knowledge Distillation for Conversational Search
 ## 1. Installation and Dataset Download
 
 ### Conda Environment
@@ -11,7 +11,7 @@ conda activate disco
 ```
 
 ### Setup for all utilized datasets
-We reproduce the experiments on TopiOCQA, CAsT 2020, iKAT 2023, and iKAT 2024. Please follow the instructions in the respective folders to download and preprocess these datasets.
+We perform experiments on TopiOCQA. Please follow the instructions in the respective folder to download and preprocess the dataset
 
 ```bash
 bash setup_script/dl_data.sh
@@ -24,12 +24,10 @@ bash setup_script/dl_distillation.sh
 
 ### Preprocessing
 
-We provide scripts to preprocess the datasets into a format suitable for indexing and retrieval.
+We provide scripts to preprocess the dataset into a format suitable for indexing and retrieval.
 
 ```bash
 python setup_script/parse_topiocqa.py
-python setup_script/parse_cast.py
-python setup_script/parse_ikat23.py
 ```
 
 ### Generating rewrites
